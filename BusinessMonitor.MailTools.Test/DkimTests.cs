@@ -15,6 +15,23 @@ namespace BusinessMonitor.MailTools.Test
             Assert.IsNotNull(record);
             Assert.AreEqual("7JWI64WVIQ==", record.PublicKey);
             Assert.AreEqual("Hello, World!", record.Notes);
+            Assert.AreEqual("rsa", record.KeyType);
+            Assert.AreEqual(0, record.Algorithms.Length);
+        }
+
+        [Test]
+        public void TestFlags()
+        {
+            var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==; t=y:s");
+
+            Assert.IsNotNull(record);
+            Assert.IsTrue((record.Flags & DkimFlags.Testing) != 0);
+            Assert.IsTrue((record.Flags & DkimFlags.SameDomain) != 0);
+
+            var record2 = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==");
+
+            Assert.IsNotNull(record2);
+            Assert.AreEqual(DkimFlags.None, record2.Flags);
         }
 
         [Test]
@@ -43,7 +60,7 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        public void CheckRevoked()
+        public void TestRevoked()
         {
             var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=");
 

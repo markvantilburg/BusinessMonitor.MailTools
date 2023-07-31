@@ -7,18 +7,18 @@
     {
         internal DkimRecord()
         {
-            Algorithms = string.Empty;
+            Algorithms = new string[0];
             KeyType = "rsa";
             Notes = string.Empty;
             PublicKey = null;
-            ServiceType = "*";
-            Flags = string.Empty;
+            ServiceType = new string[0];
+            Flags = DkimFlags.None;
         }
 
         /// <summary>
         /// Gets a list of acceptable hash algorithms
         /// </summary>
-        public string Algorithms { get; internal set; }
+        public string[] Algorithms { get; internal set; }
 
         /// <summary>
         /// Gets the Key type
@@ -38,11 +38,11 @@
         /// <summary>
         /// Gets a list of service types
         /// </summary>
-        public string ServiceType { get; internal set; }
+        public string[] ServiceType { get; internal set; }
 
         /// <summary>
         /// Gets the record flags
         /// </summary>
-        public string Flags { get; internal set; }
+        public DkimFlags Flags { get; internal set; }
     }
 }

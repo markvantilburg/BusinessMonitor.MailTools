@@ -69,7 +69,7 @@ namespace BusinessMonitor.MailTools.Dkim
                 {
                     // Acceptable hash algorithms
                     case "h":
-                        record.Algorithms = val;
+                        record.Algorithms = val.Split(':');
                         break;
 
                     // Key type
@@ -91,12 +91,20 @@ namespace BusinessMonitor.MailTools.Dkim
 
                     // Service Type
                     case "s":
-                        record.ServiceType = val;
+                        record.ServiceType = val.Split(':');
+
                         break;
 
                     // Flags
                     case "t":
-                        record.Flags = val;
+                        var flags = val.Split(':');
+
+                        foreach (var flag in flags)
+                        {
+                            if (flag == "y") record.Flags |= DkimFlags.Testing;
+                            if (flag == "s") record.Flags |= DkimFlags.SameDomain;
+                        }
+
                         break;
 
                     default:
