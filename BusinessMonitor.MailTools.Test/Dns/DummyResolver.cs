@@ -1,4 +1,5 @@
 ﻿using BusinessMonitor.MailTools.Dns;
+using System.Collections.Generic;
 
 namespace BusinessMonitor.MailTools.Test.Dns
 {
