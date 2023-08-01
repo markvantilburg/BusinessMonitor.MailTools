@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BusinessMonitor.MailTools", "BusinessMonitor.MailTools\BusinessMonitor.MailTools.csproj", "{A64D708C-FD56-4390-9E6E-7B5401008669}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BusinessMonitor.MailTools", "BusinessMonitor.MailTools\BusinessMonitor.MailTools.csproj", "{A64D708C-FD56-4390-9E6E-7B5401008669}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BusinessMonitor.MailTools.Test", "BusinessMonitor.MailTools.Test\BusinessMonitor.MailTools.Test.csproj", "{FFF834A4-0124-4FF7-AA70-354101BADFBD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BusinessMonitor.MailTools.Test", "BusinessMonitor.MailTools.Test\BusinessMonitor.MailTools.Test.csproj", "{FFF834A4-0124-4FF7-AA70-354101BADFBD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BusinessMonitor.MailTools.Dns", "BusinessMonitor.MailTools.Dns\BusinessMonitor.MailTools.Dns.csproj", "{3AC4CBDD-77B3-4A03-80E1-97DDD7695885}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{FFF834A4-0124-4FF7-AA70-354101BADFBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FFF834A4-0124-4FF7-AA70-354101BADFBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FFF834A4-0124-4FF7-AA70-354101BADFBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3AC4CBDD-77B3-4A03-80E1-97DDD7695885}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3AC4CBDD-77B3-4A03-80E1-97DDD7695885}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3AC4CBDD-77B3-4A03-80E1-97DDD7695885}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3AC4CBDD-77B3-4A03-80E1-97DDD7695885}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

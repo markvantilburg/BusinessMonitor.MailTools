@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net6.0;net48;net472</TargetFrameworks>
@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BusinessMonitor.MailTools.Dns\BusinessMonitor.MailTools.Dns.csproj" />
     <ProjectReference Include="..\BusinessMonitor.MailTools\BusinessMonitor.MailTools.csproj" />
   </ItemGroup>
 
