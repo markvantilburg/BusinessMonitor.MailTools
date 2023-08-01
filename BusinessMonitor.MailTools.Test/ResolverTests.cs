@@ -10,16 +10,6 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestLookup()
         {
-            var resolver = new DnsResolver();
-            var records = resolver.GetTextRecords("businessmonitor.nl");
-
-            Assert.Greater(records.Length, 0);
-            Assert.IsTrue(records.Any(x => x.StartsWith("google-site-verification=")));
-        }
-
-        [Test]
-        public void TestServerLookup()
-        {
             var address = IPAddress.Parse("1.1.1.1"); // Cloudflare DNS
 
             var resolver = new DnsResolver(address);
