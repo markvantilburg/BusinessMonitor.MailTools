@@ -13,6 +13,7 @@ namespace BusinessMonitor.MailTools.Spf
             Mechanism = mechanism;
 
             Include = null;
+            Included = null;
             IP4 = null;
             IP6 = null;
         }
@@ -31,6 +32,11 @@ namespace BusinessMonitor.MailTools.Spf
         /// Gets the include domain for an include mechanism
         /// </summary>
         public string? Include { get; set; }
+
+        /// <summary>
+        /// Gets the included record, this will be null if no lookup was done
+        /// </summary>
+        public SpfRecord? Included { get; set; }
 
         /// <summary>
         /// Gets the IPv4 address for a IP4 mechanism

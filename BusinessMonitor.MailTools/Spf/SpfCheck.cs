@@ -41,7 +41,7 @@ namespace BusinessMonitor.MailTools.Spf
         /// Gets a SPF record from a domain
         /// </summary>
         /// <param name="domain">The domain</param>
-        public void GetSpfRecord(string domain)
+        public SpfRecord GetSpfRecord(string domain)
         {
             var records = _resolver.GetTextRecords(domain);
             _lookups++;
@@ -66,13 +66,14 @@ namespace BusinessMonitor.MailTools.Spf
                         throw new InvalidSpfException("SPF record exceeds max lookups of 10");
                     }
 
-                    // TODO
-                    GetSpfRecord(directive.Include);
+                    var included = GetSpfRecord(directive.Include);
                     _lookups++;
+
+                    directive.Included = included;
                 }
             }
 
-            // TODO
+            return parsed;
         }
 
         /// <summary>

@@ -53,6 +53,27 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestLookup()
+        {
+            var resolver = new DummyResolver();
+
+            resolver.AddDomain("businessmonitor.nl", "v=spf1 include:survey.businessmonitor.nl -all");
+            resolver.AddDomain("survey.businessmonitor.nl", "v=spf1 ip4:192.0.2.1 -all");
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.IsNotNull(record);
+            Assert.IsNotNull(record.Directives[0].Included);
+
+            var included = record.Directives[0].Included;
+
+            Assert.AreEqual(2, included.Directives.Count);
+            Assert.AreEqual(SpfMechanism.IP4, included.Directives[0].Mechanism);
+            Assert.AreEqual("192.0.2.1", included.Directives[0].IP4.ToString());
+        }
+
+        [Test]
         public void TestMaxLookups()
         {
             var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 include:businessmonitor.nl");
