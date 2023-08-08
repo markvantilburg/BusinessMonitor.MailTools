@@ -61,6 +61,8 @@ namespace BusinessMonitor.MailTools.Dkim
             foreach (var t in tags)
             {
                 var i = t.IndexOf('=');
+                if (i == -1) continue;
+
                 var tag = t.Substring(0, i).Trim();
                 var val = t.Substring(i + 1).Trim();
 
