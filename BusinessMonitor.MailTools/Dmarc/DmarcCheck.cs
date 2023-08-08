@@ -172,7 +172,7 @@ namespace BusinessMonitor.MailTools.Dmarc
                 throw new InvalidDmarcException("Invalid receiver policy, must be none, quarantine or reject");
             }
 
-            return (ReceiverPolicy)Enum.Parse(typeof(ReceiverPolicy), value);
+            return (ReceiverPolicy)Enum.Parse(typeof(ReceiverPolicy), value, true);
         }
     }
 }

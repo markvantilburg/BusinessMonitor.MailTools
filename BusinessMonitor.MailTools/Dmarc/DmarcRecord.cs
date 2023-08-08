@@ -9,7 +9,7 @@
         {
             DkimMode = AlignmentMode.Relaxed;
             SpfMode = AlignmentMode.Relaxed;
-            FailureOptions = FailureOptions.None;
+            FailureOptions = FailureOptions.All;
             Policy = ReceiverPolicy.None;
             PercentageTag = 100;
             ReportFormat = new string[] { "afrf" };
