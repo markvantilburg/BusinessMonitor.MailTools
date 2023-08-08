@@ -24,6 +24,7 @@ namespace BusinessMonitor.MailTools.Dkim
         /// </summary>
         /// <param name="domain">The domain of the sender</param>
         /// <param name="selector">The selector from the signature</param>
+        /// <returns>The parsed DKIM record</returns>
         public DkimRecord GetDkimRecord(string domain, string selector)
         {
             var name = selector + "._domainkey." + domain;

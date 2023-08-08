@@ -23,6 +23,7 @@ namespace BusinessMonitor.MailTools.Dmarc
         /// Gets a DMARC record from a domain
         /// </summary>
         /// <param name="domain">The domain of the sender</param>
+        /// <returns>The parsed DMARC record</returns>
         public DmarcRecord GetDmarcRecord(string domain)
         {
             var name = "_dmarc." + domain;
