@@ -78,28 +78,59 @@ namespace BusinessMonitor.MailTools.Dmarc
 
                         break;
 
+                    // Failure reporting options
                     case "fo":
+                        record.FailureOptions = GetFailureOptions(val);
+
                         break;
 
+                    // Mail Receiver policy
                     case "p":
+                        record.Policy = GetReceiverPolicy(val);
+
                         break;
 
+                    // Percentage tag
                     case "pct":
+                        var percentage = int.Parse(val);
+
+                        if (percentage < 0 || percentage > 100)
+                        {
+                            throw new InvalidDmarcException("Invalid percentage tag, must be between 0 and 100");
+                        }
+
+                        record.PercentageTag = percentage;
+
                         break;
 
+                    // Report format
                     case "rf":
+                        record.ReportFormat = val.Split(':');
+
                         break;
 
+                    // Interval requested between aggregate reports
                     case "ri":
+                        record.ReportInterval = uint.Parse(val);
+
                         break;
 
+                    // Addresses to which aggregate feedback is to be sent
                     case "rua":
+                        record.AggregatedReportAddresses = val.Split(',');
+
                         break;
 
+                    // Addresses to which message-specific failure information is to be reported
                     case "ruf":
+                        record.ForensicReportAddresses = val.Split(',');
+
                         break;
 
+                    // Mail Receiver policy for all subdomains
                     case "sp":
+                        record.SubdomainPolicy = GetReceiverPolicy(val);
+
                         break;
                 }
             }
@@ -116,6 +147,32 @@ namespace BusinessMonitor.MailTools.Dmarc
             }
 
             return value == "r" ? AlignmentMode.Relaxed : AlignmentMode.Strict;
+        }
+
+        private static FailureOptions GetFailureOptions(string value)
+        {
+            var characters = value.Split(':');
+            var options = FailureOptions.None;
+
+            foreach (var option in characters)
+            {
+                if (option == "0") options |= FailureOptions.All;
+                if (option == "1") options |= FailureOptions.Any;
+                if (option == "d") options |= FailureOptions.DkimFailure;
+                if (option == "s") options |= FailureOptions.SpfFailure;
+            }
+
+            return options;
+        }
+
+        private static ReceiverPolicy GetReceiverPolicy(string value)
+        {
+            if (value != "none" && value != "quarantine" && value != "reject")
+            {
+                throw new InvalidDmarcException("Invalid receiver policy, must be none, quarantine or reject");
+            }
+
+            return (ReceiverPolicy)Enum.Parse(typeof(ReceiverPolicy), value);
         }
     }
 }
