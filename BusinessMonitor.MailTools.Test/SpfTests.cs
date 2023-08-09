@@ -1,7 +1,10 @@
-﻿using BusinessMonitor.MailTools.Exceptions;
+﻿using BusinessMonitor.MailTools.Dns;
+using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Spf;
 using BusinessMonitor.MailTools.Test.Dns;
 using NUnit.Framework;
+using System.Linq;
+using System.Net;
 
 namespace BusinessMonitor.MailTools.Test
 {
@@ -83,6 +86,34 @@ namespace BusinessMonitor.MailTools.Test
             {
                 check.GetSpfRecord("businessmonitor.nl");
             });
+        }
+
+        [Test]
+        public void TestLookups()
+        {
+            var resolver = new DnsResolver(IPAddress.Parse("1.1.1.1")); // Cloudflare DNS
+            var check = new SpfCheck(resolver);
+
+            var businessmonitor = check.GetSpfRecord("businessmonitor.nl");
+            var google = check.GetSpfRecord("gmail.com");
+            var outlook = check.GetSpfRecord("outlook.com");
+            var protonmail = check.GetSpfRecord("protonmail.com");
+
+            Assert.IsNotNull(businessmonitor);
+            Assert.IsNotNull(google);
+            Assert.IsNotNull(outlook);
+            Assert.IsNotNull(protonmail);
+
+            Assert.GreaterOrEqual(1, businessmonitor.Directives.Count);
+            Assert.GreaterOrEqual(1, google.Directives.Count);
+            Assert.GreaterOrEqual(1, outlook.Directives.Count);
+            Assert.GreaterOrEqual(1, protonmail.Directives.Count);
+
+            Assert.AreEqual("_spf.google.com", google.Directives.First(x => x.Mechanism == SpfMechanism.Include).Include);
+            Assert.IsNotNull(google.Directives.First(x => x.Mechanism == SpfMechanism.Include).Included);
+
+            Assert.AreEqual("_spf.protonmail.ch", protonmail.Directives.First(x => x.Mechanism == SpfMechanism.Include).Include);
+            Assert.IsNotNull(protonmail.Directives.First(x => x.Mechanism == SpfMechanism.Include).Included);
         }
     }
 }

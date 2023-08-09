@@ -1,7 +1,9 @@
 ﻿using BusinessMonitor.MailTools.Dmarc;
+using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Test.Dns;
 using NUnit.Framework;
+using System.Net;
 
 namespace BusinessMonitor.MailTools.Test
 {
@@ -21,7 +23,7 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestLookup()
         {
-            var resolver = new DummyResolver("_dmarc.businessmonitor.nl", "v=DMARC1; p=quarantine; adkim=s; aspf=s");
+            var resolver = new DummyResolver("_dmarc.businessmonitor.nl", "v=DMARC1; p=quarantine; adkim=s; aspf=s; pct=50; rua=reports@example.com");
 
             var check = new DmarcCheck(resolver);
             var record = check.GetDmarcRecord("businessmonitor.nl");
@@ -30,6 +32,9 @@ namespace BusinessMonitor.MailTools.Test
             Assert.AreEqual(AlignmentMode.Strict, record.DkimMode);
             Assert.AreEqual(AlignmentMode.Strict, record.SpfMode);
             Assert.AreEqual(ReceiverPolicy.Quarantine, record.Policy);
+            Assert.AreEqual(50, record.PercentageTag);
+            Assert.AreEqual(1, record.AggregatedReportAddresses.Length);
+            Assert.Contains("reports@example.com", record.AggregatedReportAddresses);
         }
 
         [Test]
@@ -66,6 +71,26 @@ namespace BusinessMonitor.MailTools.Test
             {
                 DmarcCheck.ParseDmarcRecord(value);
             });
+        }
+
+        [Test]
+        public void TestLookups()
+        {
+            var resolver = new DnsResolver(IPAddress.Parse("1.1.1.1")); // Cloudflare DNS
+            var check = new DmarcCheck(resolver);
+
+            var businessmonitor = check.GetDmarcRecord("businessmonitor.nl");
+            var google = check.GetDmarcRecord("gmail.com");
+            var outlook = check.GetDmarcRecord("outlook.com");
+            var protonmail = check.GetDmarcRecord("protonmail.com");
+
+            Assert.IsNotNull(businessmonitor);
+            Assert.IsNotNull(google);
+            Assert.IsNotNull(outlook);
+            Assert.IsNotNull(protonmail);
+
+            Assert.Contains("mailto:mailauth-reports@google.com", google.AggregatedReportAddresses);
+            Assert.Contains("mailto:rua@dmarc.microsoft", outlook.AggregatedReportAddresses);
         }
     }
 }
