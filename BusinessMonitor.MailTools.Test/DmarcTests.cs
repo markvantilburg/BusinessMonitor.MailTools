@@ -10,7 +10,7 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestParse()
         {
-            var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; adkim=s; aspf=s; p=reject");
+            var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; p=reject; adkim=s; aspf=s");
 
             Assert.IsNotNull(record);
             Assert.AreEqual(AlignmentMode.Strict, record.DkimMode);
@@ -21,7 +21,7 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestLookup()
         {
-            var resolver = new DummyResolver("_dmarc.businessmonitor.nl", "v=DMARC1; adkim=s; aspf=s; p=quarantine");
+            var resolver = new DummyResolver("_dmarc.businessmonitor.nl", "v=DMARC1; p=quarantine; adkim=s; aspf=s");
 
             var check = new DmarcCheck(resolver);
             var record = check.GetDmarcRecord("businessmonitor.nl");
@@ -59,6 +59,7 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=DMARC1; adkim=s; aspf=x")]
         [TestCase("v=DMARC1; pct=10000")]
         [TestCase("v=DMARC1; p=aaaa")]
+        [TestCase("v=DMARC1; adkim=s; p=reject")]
         public void TestInvalid(string value)
         {
             Assert.Throws<InvalidDmarcException>(() =>

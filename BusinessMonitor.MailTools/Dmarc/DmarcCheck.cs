@@ -58,13 +58,16 @@ namespace BusinessMonitor.MailTools.Dmarc
             var tags = value.Split(';').Skip(1);
             var record = new DmarcRecord();
 
+            int i = 0;
             foreach (var t in tags)
             {
-                var i = t.IndexOf('=');
-                if (i == -1) continue;
+                i++;
 
-                var tag = t.Substring(0, i).Trim();
-                var val = t.Substring(i + 1).Trim();
+                var pos = t.IndexOf('=');
+                if (pos == -1) continue;
+
+                var tag = t.Substring(0, pos).Trim();
+                var val = t.Substring(pos + 1).Trim();
 
                 // Process the tag
                 switch (tag)
@@ -89,6 +92,12 @@ namespace BusinessMonitor.MailTools.Dmarc
 
                     // Mail Receiver policy
                     case "p":
+                        // "p" tag must appear directly after version
+                        if (i != 1)
+                        {
+                            throw new InvalidDmarcException("The policy tag must appear directly after the version tag");
+                        }
+
                         record.Policy = GetReceiverPolicy(val);
 
                         break;
