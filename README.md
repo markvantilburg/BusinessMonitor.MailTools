@@ -8,6 +8,14 @@ A .NET library providing utilities for mail such as DKIM, SPF and DMARC.
 dotnet add package BusinessMonitor.MailTools
 ```
 
+If you are using ASP.NET targeting .NET Framework you may need netstandard as reference in your `web.config`.
+
+```xml
+<assemblies>
+    <add assembly="netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51" />
+</assemblies>
+```
+
 ### Resolver
 
 To make this library independent of any DNS resolver implementation, we instead provide a `IResolver` interface.
@@ -39,7 +47,7 @@ Console.WriteLine(record.PublicKey)
 Parse a DMARC record:
 
 ```cs
-var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; adkim=s; aspf=s; p=reject");
+var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; p=reject; adkim=s; aspf=s");
 
 Console.WriteLine(record.DkimMode);
 ```
