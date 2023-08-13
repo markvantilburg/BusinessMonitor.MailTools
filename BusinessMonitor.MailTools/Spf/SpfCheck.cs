@@ -171,7 +171,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                 case SpfMechanism.IP4:
                 case SpfMechanism.IP6:
-                    var address = IPAddress.Parse(value);
+                    var address = SpfAddress.Parse(value);
                     if (directive.Mechanism == SpfMechanism.IP4) directive.IP4 = address; else directive.IP6 = address;
 
                     break;

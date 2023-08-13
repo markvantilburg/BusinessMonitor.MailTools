@@ -44,6 +44,37 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestAddress()
+        {
+            var record = SpfCheck.ParseSpfRecord("v=spf1 ip4:192.0.2.0/24 ip4:192.0.2.0 ip6:2001:db8::/32");
+
+            Assert.IsNotNull(record);
+
+            SpfDirective directive;
+
+            // ip4:192.0.2.0/24
+            directive = record.Directives[0];
+
+            Assert.AreEqual("192.0.2.0/24", directive.IP4.ToString());
+            Assert.AreEqual("192.0.2.0", directive.IP4.Address.ToString());
+            Assert.AreEqual(24, directive.IP4.Length);
+
+            // ip4:192.0.2.0
+            directive = record.Directives[1];
+
+            Assert.AreEqual("192.0.2.0", directive.IP4.ToString());
+            Assert.AreEqual("192.0.2.0", directive.IP4.Address.ToString());
+            Assert.AreEqual(null, directive.IP4.Length);
+
+            // ip4:2001:db8::/32
+            directive = record.Directives[2];
+
+            Assert.AreEqual("2001:db8::/32", directive.IP6.ToString());
+            Assert.AreEqual("2001:db8::", directive.IP6.Address.ToString());
+            Assert.AreEqual(32, directive.IP6.Length);
+        }
+
+        [Test]
         [TestCase("")]
         [TestCase("v=spf1 -boop")]
         [TestCase("v=spf1 boop:boop")]

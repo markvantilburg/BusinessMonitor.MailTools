@@ -41,11 +41,11 @@ namespace BusinessMonitor.MailTools.Spf
         /// <summary>
         /// Gets the IPv4 address for a IP4 mechanism
         /// </summary>
-        public IPAddress? IP4 { get; set; }
+        public SpfAddress? IP4 { get; set; }
 
         /// <summary>
         /// Gets the IPv6 address for a IP6 mechanism
         /// </summary>
-        public IPAddress? IP6 { get; set; }
+        public SpfAddress? IP6 { get; set; }
     }
 }
