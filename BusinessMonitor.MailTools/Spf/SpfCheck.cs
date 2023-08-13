@@ -43,6 +43,13 @@ namespace BusinessMonitor.MailTools.Spf
         /// <param name="domain">The domain</param>
         public SpfRecord GetSpfRecord(string domain)
         {
+            _lookups = 0;
+
+            return GetRecord(domain);
+        }
+
+        public SpfRecord GetRecord(string domain)
+        {
             var records = _resolver.GetTextRecords(domain);
             _lookups++;
 
@@ -67,7 +74,6 @@ namespace BusinessMonitor.MailTools.Spf
                     }
 
                     var included = GetSpfRecord(directive.Include);
-                    _lookups++;
 
                     directive.Included = included;
                 }
