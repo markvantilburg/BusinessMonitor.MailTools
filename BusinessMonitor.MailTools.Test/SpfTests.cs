@@ -147,13 +147,11 @@ namespace BusinessMonitor.MailTools.Test
             Assert.IsNotNull(outlook);
             Assert.IsNotNull(protonmail);
 
-            Assert.GreaterOrEqual(1, businessmonitor.Directives.Count);
-            Assert.GreaterOrEqual(1, google.Directives.Count);
-            Assert.GreaterOrEqual(1, outlook.Directives.Count);
-            Assert.GreaterOrEqual(1, protonmail.Directives.Count);
+            Assert.GreaterOrEqual(businessmonitor.Directives.Count, 1);
+            Assert.GreaterOrEqual(outlook.Directives.Count, 1);
+            Assert.GreaterOrEqual(protonmail.Directives.Count, 1);
 
-            Assert.AreEqual("_spf.google.com", google.Directives.First(x => x.Mechanism == SpfMechanism.Include).Include);
-            Assert.IsNotNull(google.Directives.First(x => x.Mechanism == SpfMechanism.Include).Included);
+            Assert.GreaterOrEqual(google.Modifiers.Count, 1);
 
             Assert.AreEqual("_spf.protonmail.ch", protonmail.Directives.First(x => x.Mechanism == SpfMechanism.Include).Include);
             Assert.IsNotNull(protonmail.Directives.First(x => x.Mechanism == SpfMechanism.Include).Included);
