@@ -75,6 +75,18 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestModifiers()
+        {
+            var record = SpfCheck.ParseSpfRecord("v=spf1 redirect=_spf.example.com");
+
+            Assert.IsNotNull(record);
+            Assert.AreEqual(1, record.Modifiers.Count);
+
+            Assert.AreEqual("redirect", record.Modifiers[0].Name);
+            Assert.AreEqual("_spf.example.com", record.Modifiers[0].Value);
+        }
+
+        [Test]
         [TestCase("")]
         [TestCase("v=spf1 -boop")]
         [TestCase("v=spf1 boop:boop")]

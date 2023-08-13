@@ -100,45 +100,66 @@ namespace BusinessMonitor.MailTools.Spf
                 throw new InvalidSpfException("Not a valid SPF record, does not contain a version");
             }
 
-            // Split the mechanisms
+            // Split the terms
             var split = value.Split(' ').Skip(1);
+
             var directives = new List<SpfDirective>();
+            var modifiers = new List<SpfModifier>();
 
-            foreach (var d in split)
+            foreach (var term in split)
             {
-                var directive = d;
+                var index = term.IndexOf('=');
 
-                // Extract the qualifier if any
-                var qualifier = directive.Substring(0, 1);
-
-                if (Qualifiers.Contains(qualifier))
+                // Check if term is a modifier
+                if (index != -1)
                 {
-                    directive = directive.Substring(1);
+                    var modifier = ParseModifier(term);
+
+                    modifiers.Add(modifier);
                 }
                 else
                 {
-                    qualifier = "+";
+                    var directive = ParseDirective(term);
+
+                    directives.Add(directive);
                 }
-
-                // Extract the value if any
-                var index = directive.IndexOf(':');
-
-                var mechanism = directive;
-                var val = string.Empty;
-
-                if (index != -1)
-                {
-                    val = directive.Substring(index + 1);
-                    mechanism = directive.Substring(0, index);
-                }
-
-                // Parse the directive
-                var parsed = ParseDirective(qualifier, mechanism, val);
-
-                directives.Add(parsed);
             }
 
-            return new SpfRecord(directives);
+            return new SpfRecord(directives, modifiers);
+        }
+
+        /// <summary>
+        /// Parses a SPF directive
+        /// </summary>
+        /// <param name="term">The term to parse</param>
+        /// <returns>The parsed directive</returns>
+        private static SpfDirective ParseDirective(string term)
+        {
+            // Extract the qualifier if any
+            var qualifier = term.Substring(0, 1);
+
+            if (Qualifiers.Contains(qualifier))
+            {
+                term = term.Substring(1);
+            }
+            else
+            {
+                qualifier = "+";
+            }
+
+            // Extract the value if any
+            var index = term.IndexOf(':');
+
+            var mechanism = term;
+            var value = string.Empty;
+
+            if (index != -1)
+            {
+                value = term.Substring(index + 1);
+                mechanism = term.Substring(0, index);
+            }
+
+            return ParseDirective(qualifier, mechanism, value);
         }
 
         /// <summary>
@@ -181,6 +202,21 @@ namespace BusinessMonitor.MailTools.Spf
             }
 
             return directive;
+        }
+
+        /// <summary>
+        /// Parse a SPF modifier
+        /// </summary>
+        /// <param name="term">The term to parse</param>
+        /// <returns>The parsed modifier</returns>
+        private static SpfModifier ParseModifier(string term)
+        {
+            var index = term.IndexOf("=");
+
+            var name = term.Substring(0, index);
+            var value = term.Substring(index + 1);
+
+            return new SpfModifier(name, value);
         }
     }
 }
