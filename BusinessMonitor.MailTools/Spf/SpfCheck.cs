@@ -48,7 +48,7 @@ namespace BusinessMonitor.MailTools.Spf
             return GetRecord(domain);
         }
 
-        public SpfRecord GetRecord(string domain)
+        internal SpfRecord GetRecord(string domain)
         {
             var records = _resolver.GetTextRecords(domain);
             _lookups++;
