@@ -73,7 +73,7 @@ namespace BusinessMonitor.MailTools.Spf
                         throw new InvalidSpfException("SPF record exceeds max lookups of 10");
                     }
 
-                    var included = GetSpfRecord(directive.Include);
+                    var included = GetRecord(directive.Include);
 
                     directive.Included = included;
                 }
