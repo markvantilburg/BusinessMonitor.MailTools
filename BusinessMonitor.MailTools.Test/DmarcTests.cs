@@ -18,6 +18,12 @@ namespace BusinessMonitor.MailTools.Test
             Assert.AreEqual(AlignmentMode.Strict, record.DkimMode);
             Assert.AreEqual(AlignmentMode.Strict, record.SpfMode);
             Assert.AreEqual(ReceiverPolicy.Reject, record.Policy);
+
+            var record2 = DmarcCheck.ParseDmarcRecord("v=DMARC1; p=reject; rf=afrf; ri=604800");
+
+            Assert.IsNotNull(record2);
+            Assert.Contains("afrf", record2.ReportFormat);
+            Assert.AreEqual(604800, record2.ReportInterval);
         }
 
         [Test]

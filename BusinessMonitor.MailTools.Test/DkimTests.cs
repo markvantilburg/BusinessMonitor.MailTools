@@ -17,6 +17,13 @@ namespace BusinessMonitor.MailTools.Test
             Assert.AreEqual("Hello, World!", record.Notes);
             Assert.AreEqual("rsa", record.KeyType);
             Assert.AreEqual(0, record.Algorithms.Length);
+
+            var record2 = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==; h=sha1:sha256; k=ed25519; s=email");
+
+            Assert.Contains("sha1", record2.Algorithms);
+            Assert.AreEqual("ed25519", record2.KeyType);
+            Assert.Contains("email", record2.ServiceType);
+
         }
 
         [Test]
