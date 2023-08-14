@@ -1,5 +1,8 @@
 # BusinessMonitor.MailTools
 
+![Test status](https://github.com/markvantilburg/BusinessMonitor.MailTools/actions/workflows/test.yml/badge.svg)
+![Nuget](https://img.shields.io/nuget/v/BusinessMonitor.MailTools)
+
 A .NET library providing utilities for mail such as DKIM, SPF and DMARC.
 
 ## Usage
