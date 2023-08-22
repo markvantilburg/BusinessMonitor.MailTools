@@ -107,6 +107,16 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestCaseInsensitive()
+        {
+            var record = SpfCheck.ParseSpfRecord("v=SPF1 Include:example.com -All");
+
+            Assert.IsNotNull(record);
+            Assert.AreEqual(SpfMechanism.Include, record.Directives[0].Mechanism);
+            Assert.AreEqual(SpfMechanism.All, record.Directives[1].Mechanism);
+        }
+
+        [Test]
         public void TestLookup()
         {
             var resolver = new DummyResolver();

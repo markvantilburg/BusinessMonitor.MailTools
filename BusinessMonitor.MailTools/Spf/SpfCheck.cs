@@ -54,7 +54,7 @@ namespace BusinessMonitor.MailTools.Spf
             _lookups++;
 
             // Find the SPF record
-            var record = records.FirstOrDefault(x => x.StartsWith("v=spf1"));
+            var record = records.FirstOrDefault(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase));
 
             if (record == default)
             {
@@ -101,7 +101,7 @@ namespace BusinessMonitor.MailTools.Spf
         public static SpfRecord ParseSpfRecord(string value)
         {
             // Check if the record starts with SPF version 1
-            if (!value.StartsWith("v=spf1"))
+            if (!value.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase))
             {
                 throw new InvalidSpfException("Not a valid SPF record, does not contain a version");
             }
@@ -177,7 +177,7 @@ namespace BusinessMonitor.MailTools.Spf
         /// <returns>The parsed directive</returns>
         private static SpfDirective ParseDirective(string qualifier, string mechanism, string value)
         {
-            if (!Mechanisms.Contains(mechanism))
+            if (!Mechanisms.Contains(mechanism.ToLower()))
             {
                 throw new InvalidSpfException($"Not a valid SPF record, '{mechanism}' is not a valid mechanism");
             }
