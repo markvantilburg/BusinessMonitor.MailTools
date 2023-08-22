@@ -107,7 +107,7 @@ namespace BusinessMonitor.MailTools.Spf
             }
 
             // Split the terms
-            var split = value.Split(' ').Skip(1);
+            var split = value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Skip(1);
 
             var directives = new List<SpfDirective>();
             var modifiers = new List<SpfModifier>();

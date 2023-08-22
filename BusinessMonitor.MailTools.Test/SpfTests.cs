@@ -99,6 +99,14 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestWhitespaces()
+        {
+            var record = SpfCheck.ParseSpfRecord("v=spf1  ip4:192.0.2.1   -all    ");
+
+            Assert.IsNotNull(record);
+        }
+
+        [Test]
         public void TestLookup()
         {
             var resolver = new DummyResolver();
