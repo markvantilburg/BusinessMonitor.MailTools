@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using BusinessMonitor.MailTools.Util;
+using System.Net;
 
 namespace BusinessMonitor.MailTools.Spf
 {
@@ -46,10 +47,10 @@ namespace BusinessMonitor.MailTools.Spf
         {
             if (Length == null)
             {
-                return Address == address;
+                return Address.Equals(address);
             }
 
-            throw new NotImplementedException();
+            return IPAddressHelper.IsInRange(address, Address, Length.Value);
         }
 
         public override string ToString()

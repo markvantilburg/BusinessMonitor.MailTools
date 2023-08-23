@@ -75,6 +75,24 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestRange()
+        {
+            var record = SpfCheck.ParseSpfRecord("v=spf1 ip4:192.168.0.1/24 ip4:192.168.0.13");
+
+            Assert.IsNotNull(record);
+
+            SpfAddress address;
+
+            // ip4:192.168.0.1/24
+            address = record.Directives[0].IP4;
+            Assert.IsTrue(address.Contains(IPAddress.Parse("192.168.0.12")));
+
+            // ip4:192.168.0.13
+            address = record.Directives[1].IP4;
+            Assert.IsTrue(address.Contains(IPAddress.Parse("192.168.0.13")));
+        }
+
+        [Test]
         public void TestModifiers()
         {
             var record = SpfCheck.ParseSpfRecord("v=spf1 redirect=_spf.example.com");

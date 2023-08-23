@@ -1,6 +1,5 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
-using System.Net;
 
 namespace BusinessMonitor.MailTools.Spf
 {
@@ -48,7 +47,7 @@ namespace BusinessMonitor.MailTools.Spf
             return GetRecord(domain);
         }
 
-        internal SpfRecord GetRecord(string domain)
+        private SpfRecord GetRecord(string domain)
         {
             var records = _resolver.GetTextRecords(domain);
             _lookups++;
