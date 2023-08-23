@@ -24,7 +24,7 @@ namespace BusinessMonitor.MailTools.Spf
         /// </summary>
         private static readonly string[] Qualifiers = new[] { "+", "-", "~", "?" };
 
-        private IResolver _resolver;
+        private readonly IResolver _resolver;
         private int _lookups;
 
         /// <summary>

@@ -1,6 +1,4 @@
-﻿using System.Net;
-
-namespace BusinessMonitor.MailTools.Spf
+﻿namespace BusinessMonitor.MailTools.Spf
 {
     /// <summary>
     /// Represents a SPF directive

@@ -21,7 +21,7 @@
         /// <summary>
         /// Gets the DKIM Identifier Alignment mode
         /// </summary>
-        public AlignmentMode DkimMode {  get; internal set; }
+        public AlignmentMode DkimMode { get; internal set; }
 
         /// <summary>
         /// Gets the SPF Identifier Alignment mode

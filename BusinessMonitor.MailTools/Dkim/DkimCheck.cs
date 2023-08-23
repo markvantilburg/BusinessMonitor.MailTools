@@ -8,7 +8,7 @@ namespace BusinessMonitor.MailTools.Dkim
     /// </summary>
     public class DkimCheck
     {
-        private IResolver _resolver;
+        private readonly IResolver _resolver;
 
         /// <summary>
         /// Initializes a new DKIM check instance with the provided DNS resolver

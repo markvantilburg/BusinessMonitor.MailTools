@@ -8,7 +8,7 @@ namespace BusinessMonitor.MailTools.Dmarc
     /// </summary>
     public class DmarcCheck
     {
-        private IResolver _resolver;
+        private readonly IResolver _resolver;
 
         /// <summary>
         /// Initializes a new DMARC check instance with the provided DNS resolver
