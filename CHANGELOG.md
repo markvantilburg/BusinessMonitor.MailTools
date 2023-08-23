@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.4
+
+- Fix `SpfLookupException` not being thrown directly.
+- Remove unimplemented `CheckSpfRecord`.
+- Fix SPF address `Contains` method
+
 ## v1.0.3
 
 - Fix parsing error with whitespaces.

@@ -54,3 +54,19 @@ var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; p=reject; adkim=s; aspf=s");
 
 Console.WriteLine(record.DkimMode);
 ```
+
+Get a SPF record and return all includes:
+
+```cs
+var check = new SpfCheck(resolver);
+var record = check.GetSpfRecord(domain);
+
+foreach (var directive in record.Directives)
+{
+    if (directive.Mechanism == SpfMechanism.Include)
+    {
+        Console.WriteLine(directive.Include) // The include domain
+        Console.WriteLine(directive.Included) // The included SPF record
+    }
+}
+```
