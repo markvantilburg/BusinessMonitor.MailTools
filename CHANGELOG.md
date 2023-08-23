@@ -4,7 +4,7 @@
 
 - Fix `SpfLookupException` not being thrown directly.
 - Remove unimplemented `CheckSpfRecord`.
-- Fix SPF address `Contains` method
+- Fix SPF address `Contains` method.
 
 ## v1.0.3
 

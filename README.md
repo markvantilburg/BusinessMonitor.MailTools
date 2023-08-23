@@ -1,7 +1,7 @@
 # BusinessMonitor.MailTools
 
-![Test status](https://github.com/markvantilburg/BusinessMonitor.MailTools/actions/workflows/test.yml/badge.svg)
-![Nuget](https://img.shields.io/nuget/v/BusinessMonitor.MailTools)
+[![Test status](https://github.com/markvantilburg/BusinessMonitor.MailTools/actions/workflows/test.yml/badge.svg)](https://github.com/markvantilburg/BusinessMonitor.MailTools/actions/workflows/test.yml)
+[![Nuget](https://img.shields.io/nuget/v/BusinessMonitor.MailTools)](https://www.nuget.org/packages/BusinessMonitor.MailTools/)
 
 A .NET library providing utilities for mail such as DKIM, SPF and DMARC.
 
@@ -44,7 +44,7 @@ Validate the DKIM record on a domain and return the public key:
 var check = new DkimCheck(resolver);
 var record = check.GetDkimRecord(domain, selector);
 
-Console.WriteLine(record.PublicKey)
+Console.WriteLine(record.PublicKey);
 ```
 
 Parse a DMARC record:
@@ -65,8 +65,8 @@ foreach (var directive in record.Directives)
 {
     if (directive.Mechanism == SpfMechanism.Include)
     {
-        Console.WriteLine(directive.Include) // The include domain
-        Console.WriteLine(directive.Included) // The included SPF record
+        Console.WriteLine(directive.Include); // The include domain
+        Console.WriteLine(directive.Included); // The included SPF record
     }
 }
 ```
