@@ -150,6 +150,18 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestIncludeFail()
+        {
+            var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 include:example.com"); // example.com does not exist
+            var check = new SpfCheck(resolver);
+
+            Assert.Throws<SpfLookupException>(() =>
+            {
+                check.GetSpfRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
         public void TestLookups()
         {
             var resolver = new DnsResolver(IPAddress.Parse("1.1.1.1")); // Cloudflare DNS

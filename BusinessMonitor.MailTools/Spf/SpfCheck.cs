@@ -73,9 +73,16 @@ namespace BusinessMonitor.MailTools.Spf
                         throw new SpfLookupException("SPF record exceeds max lookups of 10");
                     }
 
-                    var included = GetRecord(directive.Include);
+                    try
+                    {
+                        var included = GetRecord(directive.Include);
 
-                    directive.Included = included;
+                        directive.Included = included;
+                    }
+                    catch (SpfException ex)
+                    {
+                        throw new SpfLookupException($"SPF include lookup failed for '{directive.Include}', see inner exception", ex);
+                    }
                 }
             }
 
