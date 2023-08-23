@@ -92,7 +92,7 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=spf1 boop:boop")]
         public void TestInvalid(string value)
         {
-            Assert.Throws<InvalidSpfException>(() =>
+            Assert.Throws<SpfInvalidException>(() =>
             {
                 SpfCheck.ParseSpfRecord(value);
             });
@@ -143,7 +143,7 @@ namespace BusinessMonitor.MailTools.Test
             var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 include:businessmonitor.nl");
             var check = new SpfCheck(resolver);
 
-            Assert.Throws<InvalidSpfException>(() =>
+            Assert.Throws<SpfLookupException>(() =>
             {
                 check.GetSpfRecord("businessmonitor.nl");
             });

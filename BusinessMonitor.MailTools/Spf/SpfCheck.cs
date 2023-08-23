@@ -58,7 +58,7 @@ namespace BusinessMonitor.MailTools.Spf
 
             if (record == default)
             {
-                throw new InvalidSpfException("Domain does not contain a SPF record");
+                throw new SpfNotFoundException("No SPF record found on domain");
             }
 
             // Parse and validate the record and return it
@@ -70,7 +70,7 @@ namespace BusinessMonitor.MailTools.Spf
                 {
                     if (_lookups >= MaxLookups)
                     {
-                        throw new InvalidSpfException("SPF record exceeds max lookups of 10");
+                        throw new SpfLookupException("SPF record exceeds max lookups of 10");
                     }
 
                     var included = GetRecord(directive.Include);
@@ -103,7 +103,7 @@ namespace BusinessMonitor.MailTools.Spf
             // Check if the record starts with SPF version 1
             if (!value.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase))
             {
-                throw new InvalidSpfException("Not a valid SPF record, does not contain a version");
+                throw new SpfInvalidException("Not a valid SPF record, does not contain a version");
             }
 
             // Split the terms
@@ -179,7 +179,7 @@ namespace BusinessMonitor.MailTools.Spf
         {
             if (!Mechanisms.Contains(mechanism.ToLower()))
             {
-                throw new InvalidSpfException($"Not a valid SPF record, '{mechanism}' is not a valid mechanism");
+                throw new SpfInvalidException($"Not a valid SPF record, '{mechanism}' is not a valid mechanism");
             }
 
             // Convert the qualifier and mechanism to matching types

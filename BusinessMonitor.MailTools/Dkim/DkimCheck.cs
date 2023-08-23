@@ -35,7 +35,7 @@ namespace BusinessMonitor.MailTools.Dkim
 
             if (record == default)
             {
-                throw new InvalidDkimException("Domain does not contain a DKIM record for selector");
+                throw new DkimNotFoundException($"No DKIM record found for selector '{selector}' on domain");
             }
 
             // Parse and validate the record and return it
@@ -52,7 +52,7 @@ namespace BusinessMonitor.MailTools.Dkim
             // Check if the record starts with DKIM version 1
             if (!value.StartsWith("v=DKIM1"))
             {
-                throw new InvalidDkimException("Not a valid DKIM record, does not contain a version");
+                throw new DkimInvalidException("Not a valid DKIM record, does not contain a version");
             }
 
             // Split all tags
@@ -118,7 +118,7 @@ namespace BusinessMonitor.MailTools.Dkim
             // Check for required tags, public key is allowed to be empty when key is revoked
             if (record.PublicKey == null)
             {
-                throw new InvalidDkimException("DKIM record is missing a required public key");
+                throw new DkimInvalidException("DKIM record is missing a required public key");
             }
 
             // Return the record
@@ -139,7 +139,7 @@ namespace BusinessMonitor.MailTools.Dkim
             }
             catch (FormatException)
             {
-                throw new InvalidDkimException("DKIM record public key must contain valid base64");
+                throw new DkimInvalidException("DKIM record public key must contain valid base64");
             }
         }
     }

@@ -34,7 +34,7 @@ namespace BusinessMonitor.MailTools.Dmarc
 
             if (record == default)
             {
-                throw new InvalidDmarcException("Domain does not contain a DMARC record");
+                throw new DmarcNotFoundException("No DMARC record found on domain");
             }
 
             // Parse and validate the record and return it
@@ -51,7 +51,7 @@ namespace BusinessMonitor.MailTools.Dmarc
             // Check if the record starts with DMARC version 1
             if (!value.StartsWith("v=DMARC1"))
             {
-                throw new InvalidDmarcException("Not a valid DMARC record, does not contain a version");
+                throw new DmarcInvalidException("Not a valid DMARC record, does not contain a version");
             }
 
             // Split all tags
@@ -95,7 +95,7 @@ namespace BusinessMonitor.MailTools.Dmarc
                         // "p" tag must appear directly after version
                         if (i != 1)
                         {
-                            throw new InvalidDmarcException("The policy tag must appear directly after the version tag");
+                            throw new DmarcInvalidException("The policy tag must appear directly after the version tag");
                         }
 
                         record.Policy = GetReceiverPolicy(val);
@@ -108,7 +108,7 @@ namespace BusinessMonitor.MailTools.Dmarc
 
                         if (percentage < 0 || percentage > 100)
                         {
-                            throw new InvalidDmarcException("Invalid percentage tag, must be between 0 and 100");
+                            throw new DmarcInvalidException("Invalid percentage tag, must be between 0 and 100");
                         }
 
                         record.PercentageTag = percentage;
@@ -155,7 +155,7 @@ namespace BusinessMonitor.MailTools.Dmarc
         {
             if (value != "r" && value != "s")
             {
-                throw new InvalidDmarcException("Invalid alignment mode, must be relaxed or strict");
+                throw new DmarcInvalidException("Invalid alignment mode, must be relaxed or strict");
             }
 
             return value == "r" ? AlignmentMode.Relaxed : AlignmentMode.Strict;
@@ -181,7 +181,7 @@ namespace BusinessMonitor.MailTools.Dmarc
         {
             if (value != "none" && value != "quarantine" && value != "reject")
             {
-                throw new InvalidDmarcException("Invalid receiver policy, must be none, quarantine or reject");
+                throw new DmarcInvalidException("Invalid receiver policy, must be none, quarantine or reject");
             }
 
             return (ReceiverPolicy)Enum.Parse(typeof(ReceiverPolicy), value, true);

@@ -73,7 +73,7 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=DMARC1; adkim=s; p=reject")]
         public void TestInvalid(string value)
         {
-            Assert.Throws<InvalidDmarcException>(() =>
+            Assert.Throws<DmarcInvalidException>(() =>
             {
                 DmarcCheck.ParseDmarcRecord(value);
             });

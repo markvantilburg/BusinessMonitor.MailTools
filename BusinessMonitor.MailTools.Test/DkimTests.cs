@@ -60,7 +60,7 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=DKIM1; p=?NotAValidBase64String?")]
         public void TestInvalid(string value)
         {
-            Assert.Throws<InvalidDkimException>(() =>
+            Assert.Throws<DkimInvalidException>(() =>
             {
                 DkimCheck.ParseDkimRecord(value);
             });
