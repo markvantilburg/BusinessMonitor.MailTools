@@ -24,7 +24,9 @@ namespace BusinessMonitor.MailTools.Dns
         public string[] GetTextRecords(string domain)
         {
             var response = Resolver.Lookup(domain, DnsType.TXT, _address);
-            var records = response.Answers.Select(record => (record.Record as TXTRecord).Value);
+            var records = response.Answers
+                .Where(record => record.Type == DnsType.TXT)
+                .Select(record => (record.Record as TXTRecord).Value);
 
             return records.ToArray();
         }
