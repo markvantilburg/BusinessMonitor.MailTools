@@ -79,7 +79,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                         directive.Included = included;
                     }
-                    catch (SpfException ex)
+                    catch (SpfException ex) when (ex is not SpfLookupException)
                     {
                         throw new SpfLookupException($"SPF include lookup failed for '{directive.Include}', see inner exception", ex);
                     }
