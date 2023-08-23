@@ -90,17 +90,6 @@ namespace BusinessMonitor.MailTools.Spf
         }
 
         /// <summary>
-        /// Checks an IP address for a host
-        /// </summary>
-        /// <param name="address">The IP address to check</param>
-        /// <param name="domain">The host to check</param>
-        /// <returns>Whether the host allows the IP address</returns>
-        public bool CheckSpfRecord(IPAddress address, string domain)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Parses and validates a SPF record and return the record
         /// </summary>
         /// <param name="value">The record content</param>
