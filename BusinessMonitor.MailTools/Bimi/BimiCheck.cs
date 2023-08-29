@@ -72,12 +72,14 @@ namespace BusinessMonitor.MailTools.Bimi
                 {
                     // Authority Evidence Location
                     case "a":
+                        ValidateUri(val, "evidence location");
                         record.Evidence = val;
 
                         break;
 
                     // Location of Brand Indicator file
                     case "l":
+                        ValidateUri(val, "location");
                         record.Location = val;
 
                         break;
@@ -92,6 +94,31 @@ namespace BusinessMonitor.MailTools.Bimi
 
             // Return the record
             return record;
+        }
+
+        private static void ValidateUri(string value, string type)
+        {
+            // May be empty, so don't fail validation then
+            if (string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            Uri uri;
+            try
+            {
+                uri = new Uri(value);
+            }
+            catch (UriFormatException)
+            {
+                throw new BimiInvalidException($"BIMI record {type} is not a well-formed URI");
+            }
+
+            // Check the transport scheme
+            if (uri.Scheme != "https")
+            {
+                throw new BimiInvalidException($"BIMI record {type} is invalid, transport must be HTTPS");
+            }
         }
     }
 }
