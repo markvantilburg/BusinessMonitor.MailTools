@@ -25,6 +25,8 @@ namespace BusinessMonitor.MailTools.Bimi
         /// <param name="domain">The domain of the sender</param>
         /// <param name="selector">The selector</param>
         /// <returns>The parsed BIMI record</returns>
+        /// <exception cref="BimiNotFoundException">No BIMI record was found for the domain</exception>
+        /// <exception cref="BimiInvalidException">The BIMI record was invalid</exception>
         public BimiRecord GetBimiRecord(string domain, string selector = "default")
         {
             var name = selector + "._bimi." + domain;
@@ -47,6 +49,7 @@ namespace BusinessMonitor.MailTools.Bimi
         /// </summary>
         /// <param name="value">The record content</param>
         /// <returns>The parsed BIMI record</returns>
+        /// <exception cref="BimiInvalidException">The BIMI record was invalid</exception>
         public static BimiRecord ParseBimiRecord(string value)
         {
             // Check if the record starts with BIMI version 1

@@ -40,6 +40,10 @@ namespace BusinessMonitor.MailTools.Spf
         /// Gets a SPF record from a domain
         /// </summary>
         /// <param name="domain">The domain</param>
+        /// <returns>The parsed SPF record</returns>
+        /// <exception cref="SpfNotFoundException">No SPF record was found for the domain</exception>
+        /// <exception cref="SpfInvalidException">The SPF record was invalid</exception>
+        /// <exception cref="SpfLookupException">An include lookup failed, see inner exception</exception>
         public SpfRecord GetSpfRecord(string domain)
         {
             _lookups = 0;
@@ -93,6 +97,7 @@ namespace BusinessMonitor.MailTools.Spf
         /// </summary>
         /// <param name="value">The record content</param>
         /// <returns>The parsed SPF record</returns>
+        /// <exception cref="SpfInvalidException">The SPF record was invalid</exception>
         public static SpfRecord ParseSpfRecord(string value)
         {
             // Check if the record starts with SPF version 1

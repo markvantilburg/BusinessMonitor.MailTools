@@ -25,6 +25,8 @@ namespace BusinessMonitor.MailTools.Dkim
         /// <param name="domain">The domain of the sender</param>
         /// <param name="selector">The selector from the signature</param>
         /// <returns>The parsed DKIM record</returns>
+        /// <exception cref="DkimNotFoundException">No DKIM record was found for the domain and selector</exception>
+        /// <exception cref="DkimInvalidException">The DKIM record was invalid</exception>
         public DkimRecord GetDkimRecord(string domain, string selector)
         {
             var name = selector + "._domainkey." + domain;
@@ -47,6 +49,7 @@ namespace BusinessMonitor.MailTools.Dkim
         /// </summary>
         /// <param name="value">The record content</param>
         /// <returns>The parsed DKIM record</returns>
+        /// <exception cref="DkimInvalidException">The DKIM record was invalid</exception>
         public static DkimRecord ParseDkimRecord(string value)
         {
             // Check if the record starts with DKIM version 1

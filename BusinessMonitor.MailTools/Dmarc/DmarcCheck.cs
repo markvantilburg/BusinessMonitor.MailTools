@@ -24,6 +24,8 @@ namespace BusinessMonitor.MailTools.Dmarc
         /// </summary>
         /// <param name="domain">The domain of the sender</param>
         /// <returns>The parsed DMARC record</returns>
+        /// <exception cref="DmarcNotFoundException">No DMARC record was found for the domain</exception>
+        /// <exception cref="DmarcInvalidException">The DMARC record was invalid</exception>
         public DmarcRecord GetDmarcRecord(string domain)
         {
             var name = "_dmarc." + domain;
@@ -46,6 +48,7 @@ namespace BusinessMonitor.MailTools.Dmarc
         /// </summary>
         /// <param name="value">The record content</param>
         /// <returns>The parsed DMARC record</returns>
+        /// <exception cref="DmarcInvalidException">The DMARC record was invalid</exception>
         public static DmarcRecord ParseDmarcRecord(string value)
         {
             // Check if the record starts with DMARC version 1
