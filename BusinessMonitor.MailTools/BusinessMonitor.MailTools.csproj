@@ -11,7 +11,7 @@
     <Title>BusinessMonitor.MailTools</Title>
     <Description>A .NET library providing utilities for mail such as DKIM, SPF and DMARC.</Description>
     <Authors>Mark van Tilburg, Indra van den Berg</Authors>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
 
     <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -28,5 +28,14 @@
 
     <InternalsVisibleTo Include="BusinessMonitor.MailTools.Test" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
 
 </Project>
