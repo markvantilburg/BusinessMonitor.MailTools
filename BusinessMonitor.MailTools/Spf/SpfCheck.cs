@@ -71,7 +71,7 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 if (directive.Mechanism == SpfMechanism.Include && directive.Include != null)
                 {
-                    if (_lookups >= MaxLookups)
+                    if (_lookups > MaxLookups)
                     {
                         throw new SpfLookupException("SPF record exceeds max lookups of 10");
                     }
