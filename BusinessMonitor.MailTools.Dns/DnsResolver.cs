@@ -30,5 +30,26 @@ namespace BusinessMonitor.MailTools.Dns
 
             return records.ToArray();
         }
+
+        public IPAddress[] GetAddressRecords(string domain)
+        {
+            // A for now, Bdev.Net.Dns does not seem to support AAAA
+            var response = Resolver.Lookup(domain, DnsType.A, _address);
+            var records = response.Answers
+                .Where(record => record.Type == DnsType.A)
+                .Select(record => (record.Record as ANameRecord).IPAddress);
+
+            return records.ToArray();
+        }
+
+        public string[] GetMailRecords(string domain)
+        {
+            var response = Resolver.Lookup(domain, DnsType.MX, _address);
+            var records = response.Answers
+                .Where(record => record.Type == DnsType.MX)
+                .Select(record => (record.Record as MXRecord).DomainName);
+
+            return records.ToArray();
+        }
     }
 }

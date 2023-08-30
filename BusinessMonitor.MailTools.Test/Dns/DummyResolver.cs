@@ -1,5 +1,7 @@
 ﻿using BusinessMonitor.MailTools.Dns;
+using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace BusinessMonitor.MailTools.Test.Dns
 {
@@ -31,6 +33,16 @@ namespace BusinessMonitor.MailTools.Test.Dns
             }
 
             return new string[0];
+        }
+
+        public IPAddress[] GetAddressRecords(string domain)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string[] GetMailRecords(string domain)
+        {
+            throw new NotImplementedException();
         }
     }
 }
