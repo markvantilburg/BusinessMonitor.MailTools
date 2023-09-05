@@ -34,7 +34,7 @@ public class DnsResolver : IResolver
 }
 ```
 
-For an example implementation see [BusinessMonitor.MailTools.Dns](BusinessMonitor.MailTools.Dns/).
+For an example implementation see [BusinessMonitor.MailTools.Dns](https://github.com/markvantilburg/BusinessMonitor.MailTools/tree/main/BusinessMonitor.MailTools.Dns)
 
 ### Examples
 
