@@ -1,5 +1,6 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
+using System.Net;
 
 namespace BusinessMonitor.MailTools.Spf
 {
@@ -86,6 +87,21 @@ namespace BusinessMonitor.MailTools.Spf
                     {
                         throw new SpfLookupException($"SPF include lookup failed for '{directive.Include}', see inner exception", ex);
                     }
+                }
+
+                if (directive.Mechanism == SpfMechanism.A || directive.Mechanism == SpfMechanism.MX)
+                {
+                    if (_lookups > MaxLookups)
+                    {
+                        throw new SpfLookupException("SPF record exceeds max lookups of 10");
+                    }
+
+                    if (string.IsNullOrEmpty(directive.Domain))
+                    {
+                        directive.Domain = domain;
+                    }
+
+                    directive.Addresses = ResolveDirective(directive);
                 }
             }
 
@@ -203,6 +219,12 @@ namespace BusinessMonitor.MailTools.Spf
 
                     break;
 
+                case SpfMechanism.A:
+                case SpfMechanism.MX:
+                    directive.Domain = value;
+
+                    break;
+
                 default:
                     break;
             }
@@ -223,6 +245,35 @@ namespace BusinessMonitor.MailTools.Spf
             var value = term.Substring(index + 1);
 
             return new SpfModifier(name, value);
+        }
+
+        private IPAddress[] ResolveDirective(SpfDirective directive)
+        {
+            _lookups++;
+
+            // If a mechanism lookup the addresses and return
+            if (directive.Mechanism == SpfMechanism.A)
+            {
+                return _resolver.GetAddressRecords(directive.Domain);
+            }
+
+            // Lookup all MX records and do a lookup on those
+            var records = _resolver.GetMailRecords(directive.Domain);
+            var addresses = new List<IPAddress>();
+
+            foreach (var record in records)
+            {
+                if (_lookups > MaxLookups)
+                {
+                    throw new SpfLookupException("SPF record exceeds max lookups of 10");
+                }
+
+                _lookups++;
+
+                addresses.AddRange(_resolver.GetAddressRecords(record));
+            }
+
+            return addresses.ToArray();
         }
     }
 }

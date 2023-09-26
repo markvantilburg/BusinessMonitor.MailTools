@@ -1,4 +1,6 @@
-﻿namespace BusinessMonitor.MailTools.Spf
+﻿using System.Net;
+
+namespace BusinessMonitor.MailTools.Spf
 {
     /// <summary>
     /// Represents a SPF directive
@@ -14,6 +16,8 @@
             Included = null;
             IP4 = null;
             IP6 = null;
+            Domain = null;
+            Addresses = new IPAddress[0];
         }
 
         /// <summary>
@@ -45,5 +49,15 @@
         /// Gets the IPv6 address for a IP6 mechanism
         /// </summary>
         public SpfAddress? IP6 { get; set; }
+
+        /// <summary>
+        /// Gets the domain for the A or MX mechanism
+        /// </summary>
+        public string? Domain { get; set; }
+
+        /// <summary>
+        /// Gets the addresses for the A or MX mechanism
+        /// </summary>
+        public IPAddress[] Addresses { get; set; }
     }
 }

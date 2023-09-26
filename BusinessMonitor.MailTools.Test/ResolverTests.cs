@@ -16,7 +16,7 @@ namespace BusinessMonitor.MailTools.Test
             var records = resolver.GetTextRecords("businessmonitor.nl");
 
             Assert.Greater(records.Length, 0);
-            Assert.IsTrue(records.Any(x => x.StartsWith("google-site-verification=")));
+            Assert.IsTrue(records.Any(x => x.StartsWith("MS=")));
         }
 
         [Test]
