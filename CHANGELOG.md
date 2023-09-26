@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.5
+
+- Add Microsoft Source Link and symbols.
+- Add support for BIMI.
+- Add A, AAAA and MX lookup methods to IResolver.
+- Fix max lookups.
+- Add implementation for MX and A directives.
+
 ## v1.0.4
 
 - Fix `SpfLookupException` not being thrown directly.
