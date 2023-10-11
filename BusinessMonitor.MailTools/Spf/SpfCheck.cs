@@ -59,7 +59,7 @@ namespace BusinessMonitor.MailTools.Spf
 
             if (domain.Length > 253)
             {
-                throw new ArgumentException("Domain must not exceed 253 characters");
+                throw new ArgumentException("Domain must not exceed 253 characters", nameof(domain));
             }
 
             _lookups = 0;

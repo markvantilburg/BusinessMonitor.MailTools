@@ -41,12 +41,12 @@ namespace BusinessMonitor.MailTools.Dkim
 
             if (selector == null)
             {
-                throw new ArgumentNullException(nameof(domain));
+                throw new ArgumentNullException(nameof(selector));
             }
 
             if (domain.Length > 253)
             {
-                throw new ArgumentException("Domain must not exceed 253 characters");
+                throw new ArgumentException("Domain must not exceed 253 characters", nameof(domain));
             }
 
             var name = selector + "._domainkey." + domain;

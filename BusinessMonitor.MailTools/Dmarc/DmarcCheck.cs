@@ -40,7 +40,7 @@ namespace BusinessMonitor.MailTools.Dmarc
 
             if (domain.Length > 253)
             {
-                throw new ArgumentException("Domain must not exceed 253 characters");
+                throw new ArgumentException("Domain must not exceed 253 characters", nameof(domain));
             }
 
             var name = "_dmarc." + domain;
