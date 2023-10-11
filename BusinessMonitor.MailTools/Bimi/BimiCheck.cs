@@ -16,6 +16,11 @@ namespace BusinessMonitor.MailTools.Bimi
         /// <param name="resolver">The DNS resolver to use</param>
         public BimiCheck(IResolver resolver)
         {
+            if (resolver == null)
+            {
+                throw new ArgumentNullException(nameof(resolver));
+            }
+
             _resolver = resolver;
         }
         
@@ -29,6 +34,21 @@ namespace BusinessMonitor.MailTools.Bimi
         /// <exception cref="BimiInvalidException">The BIMI record was invalid</exception>
         public BimiRecord GetBimiRecord(string domain, string selector = "default")
         {
+            if (domain == null)
+            {
+                throw new ArgumentNullException(nameof(domain));
+            }
+
+            if (selector == null)
+            {
+                throw new ArgumentNullException(nameof(domain));
+            }
+
+            if (domain.Length > 253)
+            {
+                throw new ArgumentException("Domain must not exceed 253 characters");
+            }
+
             var name = selector + "._bimi." + domain;
             var records = _resolver.GetTextRecords(name);
 
@@ -52,6 +72,11 @@ namespace BusinessMonitor.MailTools.Bimi
         /// <exception cref="BimiInvalidException">The BIMI record was invalid</exception>
         public static BimiRecord ParseBimiRecord(string value)
         {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
             // Check if the record starts with BIMI version 1
             if (!value.StartsWith("v=BIMI1"))
             {

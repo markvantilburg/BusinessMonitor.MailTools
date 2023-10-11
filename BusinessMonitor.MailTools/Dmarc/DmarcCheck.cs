@@ -16,6 +16,11 @@ namespace BusinessMonitor.MailTools.Dmarc
         /// <param name="resolver">The DNS resolver to use</param>
         public DmarcCheck(IResolver resolver)
         {
+            if (resolver == null)
+            {
+                throw new ArgumentNullException(nameof(resolver));
+            }
+
             _resolver = resolver;
         }
 
@@ -28,6 +33,16 @@ namespace BusinessMonitor.MailTools.Dmarc
         /// <exception cref="DmarcInvalidException">The DMARC record was invalid</exception>
         public DmarcRecord GetDmarcRecord(string domain)
         {
+            if (domain == null)
+            {
+                throw new ArgumentNullException(nameof(domain));
+            }
+
+            if (domain.Length > 253)
+            {
+                throw new ArgumentException("Domain must not exceed 253 characters");
+            }
+
             var name = "_dmarc." + domain;
             var records = _resolver.GetTextRecords(name);
 
@@ -51,6 +66,11 @@ namespace BusinessMonitor.MailTools.Dmarc
         /// <exception cref="DmarcInvalidException">The DMARC record was invalid</exception>
         public static DmarcRecord ParseDmarcRecord(string value)
         {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
             // Check if the record starts with DMARC version 1
             if (!value.StartsWith("v=DMARC1"))
             {

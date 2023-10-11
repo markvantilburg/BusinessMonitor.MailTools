@@ -33,6 +33,11 @@ namespace BusinessMonitor.MailTools.Spf
         /// <param name="resolver">The DNS resolver to use</param>
         public SpfCheck(IResolver resolver)
         {
+            if (resolver == null)
+            {
+                throw new ArgumentNullException(nameof(resolver));
+            }
+
             _resolver = resolver;
             _lookups = 0;
         }
@@ -47,6 +52,16 @@ namespace BusinessMonitor.MailTools.Spf
         /// <exception cref="SpfLookupException">An include lookup failed, see inner exception</exception>
         public SpfRecord GetSpfRecord(string domain)
         {
+            if (domain == null)
+            {
+                throw new ArgumentNullException(nameof(domain));
+            }
+
+            if (domain.Length > 253)
+            {
+                throw new ArgumentException("Domain must not exceed 253 characters");
+            }
+
             _lookups = 0;
 
             return GetRecord(domain);
@@ -116,6 +131,11 @@ namespace BusinessMonitor.MailTools.Spf
         /// <exception cref="SpfInvalidException">The SPF record was invalid</exception>
         public static SpfRecord ParseSpfRecord(string value)
         {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
             // Check if the record starts with SPF version 1
             if (!value.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase))
             {
