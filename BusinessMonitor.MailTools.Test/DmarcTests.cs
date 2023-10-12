@@ -3,6 +3,7 @@ using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Test.Dns;
 using NUnit.Framework;
+using System;
 using System.Net;
 
 namespace BusinessMonitor.MailTools.Test
@@ -76,6 +77,34 @@ namespace BusinessMonitor.MailTools.Test
             Assert.Throws<DmarcInvalidException>(() =>
             {
                 DmarcCheck.ParseDmarcRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestInvalidArguments()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                new DmarcCheck(null);
+            });
+
+            var check = new DmarcCheck(new DummyResolver());
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                check.GetDmarcRecord(null);
+            });
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                var domain = new string('a', 300);
+
+                check.GetDmarcRecord(domain);
+            });
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DmarcCheck.ParseDmarcRecord(null);
             });
         }
 

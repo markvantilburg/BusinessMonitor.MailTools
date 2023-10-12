@@ -2,6 +2,7 @@
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Test.Dns;
 using NUnit.Framework;
+using System;
 
 namespace BusinessMonitor.MailTools.Test
 {
@@ -63,6 +64,39 @@ namespace BusinessMonitor.MailTools.Test
             Assert.Throws<DkimInvalidException>(() =>
             {
                 DkimCheck.ParseDkimRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestInvalidArguments()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                new DkimCheck(null);
+            });
+
+            var check = new DkimCheck(new DummyResolver());
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                check.GetDkimRecord(null, "test");
+            });
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                check.GetDkimRecord("test", null);
+            });
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                var domain = new string('a', 300);
+
+                check.GetDkimRecord(domain, "test");
+            });
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                DkimCheck.ParseDkimRecord(null);
             });
         }
 

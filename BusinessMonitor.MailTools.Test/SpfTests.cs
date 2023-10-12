@@ -3,6 +3,7 @@ using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Spf;
 using BusinessMonitor.MailTools.Test.Dns;
 using NUnit.Framework;
+using System;
 using System.Linq;
 using System.Net;
 using System.Reflection;
@@ -118,6 +119,34 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestInvalidArguments()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                new SpfCheck(null);
+            });
+
+            var check = new SpfCheck(new DummyResolver());
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                check.GetSpfRecord(null);
+            });
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                var domain = new string('a', 300);
+
+                check.GetSpfRecord(domain);
+            });
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(null);
+            });
+        }
+
+        [Test]
         public void TestWhitespaces()
         {
             var record = SpfCheck.ParseSpfRecord("v=spf1  ip4:192.0.2.1   -all    ");
@@ -185,6 +214,37 @@ namespace BusinessMonitor.MailTools.Test
             // Check the number of lookups
             var lookups = (int)typeof(SpfCheck).GetField("_lookups", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(check);
             Assert.AreEqual(4, lookups);
+        }
+
+        [Test]
+        public void TestA()
+        {
+            var resolver = new DummyResolver();
+
+            resolver.AddText("businessmonitor.nl", "v=spf1 a a:mail.businessmonitor.nl -all");
+
+            resolver.AddAddress("businessmonitor.nl", IPAddress.Parse("10.10.0.1"));
+            resolver.AddAddress("mail.businessmonitor.nl", IPAddress.Parse("10.10.0.2"));
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.IsNotNull(record);
+            Assert.AreEqual(3, record.Directives.Count);
+
+            SpfDirective directive;
+
+            // a
+            directive = record.Directives[0];
+
+            Assert.AreEqual("businessmonitor.nl", directive.Domain);
+            Assert.AreEqual(IPAddress.Parse("10.10.0.1"), directive.Addresses[0]);
+
+            // a:mail.businessmonitor.nl
+            directive = record.Directives[1];
+
+            Assert.AreEqual("mail.businessmonitor.nl", directive.Domain);
+            Assert.AreEqual(IPAddress.Parse("10.10.0.2"), directive.Addresses[0]);
         }
 
         [Test]

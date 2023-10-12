@@ -3,6 +3,7 @@ using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Test.Dns;
 using NUnit.Framework;
+using System;
 using System.Net;
 
 namespace BusinessMonitor.MailTools.Test
@@ -23,6 +24,10 @@ namespace BusinessMonitor.MailTools.Test
             Assert.IsNotNull(record2);
             Assert.AreEqual("https://example.com/logo.svg", record2.Location);
             Assert.AreEqual("https://example.com/bimi.pem", record2.Evidence);
+
+            var record3 = BimiCheck.ParseBimiRecord("v=BIMI1; l=");
+
+            Assert.IsNotNull(record3);
         }
 
         [Test]
@@ -48,6 +53,39 @@ namespace BusinessMonitor.MailTools.Test
             Assert.Throws<BimiInvalidException>(() =>
             {
                 BimiCheck.ParseBimiRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestInvalidArguments()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                new BimiCheck(null);
+            });
+
+            var check = new BimiCheck(new DummyResolver());
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                check.GetBimiRecord(null);
+            });
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                check.GetBimiRecord("businessmonitor.nl", null);
+            });
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                var domain = new string('a', 300);
+
+                check.GetBimiRecord(domain);
+            });
+
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                BimiCheck.ParseBimiRecord(null);
             });
         }
 
