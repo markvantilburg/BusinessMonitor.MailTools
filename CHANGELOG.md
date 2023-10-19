@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.6
+
+- Add null checks to all public methods.
+- Add checks to ensure hostname does not exceed 253 characters.
+
 ## v1.0.5
 
 - Add Microsoft Source Link and symbols.
