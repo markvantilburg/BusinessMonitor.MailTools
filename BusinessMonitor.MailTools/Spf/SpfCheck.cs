@@ -64,13 +64,13 @@ namespace BusinessMonitor.MailTools.Spf
 
             _lookups = 0;
 
-            return GetRecord(domain);
+            return GetRecord(domain, false);
         }
 
-        private SpfRecord GetRecord(string domain)
+        private SpfRecord GetRecord(string domain, bool lookup = true)
         {
             var records = _resolver.GetTextRecords(domain);
-            _lookups++;
+            if (lookup) _lookups++;
 
             // Find the SPF record
             var record = records.FirstOrDefault(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase));
