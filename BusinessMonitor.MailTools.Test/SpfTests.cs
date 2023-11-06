@@ -213,7 +213,7 @@ namespace BusinessMonitor.MailTools.Test
 
             // Check the number of lookups
             var lookups = (int)typeof(SpfCheck).GetField("_lookups", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(check);
-            Assert.AreEqual(3, lookups);
+            Assert.AreEqual(1, lookups);
         }
 
         [Test]
@@ -254,6 +254,24 @@ namespace BusinessMonitor.MailTools.Test
             var check = new SpfCheck(resolver);
 
             Assert.Throws<SpfLookupException>(() =>
+            {
+                check.GetSpfRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
+        public void TestMaxMX()
+        {
+            var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 mx");
+
+            for (var i = 0; i < 11; i++)
+            {
+                resolver.AddMail("businessmonitor.nl", $"mx{i}.businessmonitor.nl");
+            }
+
+            var check = new SpfCheck(resolver);
+
+            Assert.Throws<SpfException>(() =>
             {
                 check.GetSpfRecord("businessmonitor.nl");
             });
