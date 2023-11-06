@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.7
+
+- Fix number of lookups being counted wrong
+
 ## v1.0.6
 
 - Add null checks to all public methods.
