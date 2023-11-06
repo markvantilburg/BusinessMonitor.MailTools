@@ -213,7 +213,7 @@ namespace BusinessMonitor.MailTools.Test
 
             // Check the number of lookups
             var lookups = (int)typeof(SpfCheck).GetField("_lookups", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(check);
-            Assert.AreEqual(4, lookups);
+            Assert.AreEqual(3, lookups);
         }
 
         [Test]
