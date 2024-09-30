@@ -79,6 +79,11 @@ namespace BusinessMonitor.MailTools.Spf
                 throw new SpfNotFoundException("No SPF record found on domain");
             }
 
+            if (record.Length > 1)
+            {
+                throw new SpfNotFoundException("Too many SPF records found on domain");
+            }
+            
             // Parse and validate the record and return it
             var parsed = ParseSpfRecord(record);
 
