@@ -79,7 +79,7 @@ namespace BusinessMonitor.MailTools.Spf
                 throw new SpfNotFoundException("No SPF record found on domain");
             }
 
-            if (record.Length > 1)
+            if (records.Count(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase)) > 1)
             {
                 throw new SpfNotFoundException("Too many SPF records found on domain");
             }
