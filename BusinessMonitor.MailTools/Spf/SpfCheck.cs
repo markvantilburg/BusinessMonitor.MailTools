@@ -81,7 +81,7 @@ namespace BusinessMonitor.MailTools.Spf
 
             if (records.Count(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase)) > 1)
             {
-                throw new SpfNotFoundException("Too many SPF records found on domain");
+                throw new SpfInvalidException("Too many SPF records found on domain");
             }
             
             // Parse and validate the record and return it
