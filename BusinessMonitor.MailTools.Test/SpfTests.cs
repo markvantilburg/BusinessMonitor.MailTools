@@ -147,6 +147,21 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestMultipleSPFRecords()
+        {
+            DummyResolver resolver = new DummyResolver();
+            var check = new SpfCheck(resolver);
+
+            resolver.AddText("x.businessmonitor.nl", "v=spf1 include:survey.businessmonitor.nl -all");
+            resolver.AddText("x.businessmonitor.nl", "v=spf1 ip4:192.0.2.1 -all");
+
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                check.GetSpfRecord("x.businessmonitor.nl");
+            });
+        }
+        
+        [Test]
         public void TestWhitespaces()
         {
             var record = SpfCheck.ParseSpfRecord("v=spf1  ip4:192.0.2.1   -all    ");
