@@ -1,5 +1,10 @@
 # Changelog
 
+## vNext
+
+- Migrate to .net8 [#4](https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/4)
+- Check if the domain has just one spf record.
+
 ## v1.0.7
 
 - Fix number of lookups being counted wrong
