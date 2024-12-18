@@ -110,6 +110,7 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("")]
         [TestCase("v=spf1 -boop")]
         [TestCase("v=spf1 boop:boop")]
+        [TestCase("v=spf1 include:include:businessmonitor.nl")]
         public void TestInvalid(string value)
         {
             Assert.Throws<SpfInvalidException>(() =>

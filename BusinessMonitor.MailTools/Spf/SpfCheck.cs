@@ -1,6 +1,7 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace BusinessMonitor.MailTools.Spf
 {
@@ -83,7 +84,7 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 throw new SpfInvalidException("Too many SPF records found on domain");
             }
-            
+
             // Parse and validate the record and return it
             var parsed = ParseSpfRecord(record);
 
@@ -237,6 +238,11 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 case SpfMechanism.Include:
                     directive.Include = value;
+
+                    if (Regex.Match(value, "^([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$").Length != 1)
+                    {
+                        throw new SpfInvalidException($"Include must be a domain name. The include value '{value}' fails");
+                    }
 
                     break;
 
