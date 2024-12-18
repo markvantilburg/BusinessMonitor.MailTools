@@ -239,7 +239,7 @@ namespace BusinessMonitor.MailTools.Spf
                 case SpfMechanism.Include:
                     directive.Include = value;
 
-                    if (Regex.Match(value, "^([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$").Length != 1)
+                    if (Regex.Match(value, "^[a-z|A-Z|0-9|\-|_]{1,63}(\.[a-z|A-Z|0-9|\-|_]{1,63})+$").Length != 1)
                     {
                         throw new SpfInvalidException($"Include must be a domain name. The include value '{value}' fails");
                     }
