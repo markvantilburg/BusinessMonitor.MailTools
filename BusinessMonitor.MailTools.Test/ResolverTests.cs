@@ -15,8 +15,8 @@ namespace BusinessMonitor.MailTools.Test
             var resolver = new DnsResolver(address);
             var records = resolver.GetTextRecords("businessmonitor.nl");
 
-            Assert.Greater(records.Length, 0);
-            Assert.IsTrue(records.Any(x => x.StartsWith("MS=")));
+            Assert.That(records.Length, Is.GreaterThan(0));
+            Assert.That(records.Any(x => x.StartsWith("MS=")), Is.True);
         }
 
         [Test]
@@ -27,8 +27,8 @@ namespace BusinessMonitor.MailTools.Test
             var resolver = new DnsResolver(address);
             var records = resolver.GetAddressRecords("one.one.one.one");
 
-            Assert.Greater(records.Length, 0);
-            Assert.IsTrue(records.Any(x => x.Equals(IPAddress.Parse("1.1.1.1"))));
+            Assert.That(records.Length, Is.GreaterThan(0));
+            Assert.That(records.Any(x => x.Equals(IPAddress.Parse("1.1.1.1"))), Is.True);
         }
 
         [Test]
@@ -39,8 +39,8 @@ namespace BusinessMonitor.MailTools.Test
             var resolver = new DnsResolver(address);
             var records = resolver.GetMailRecords("businessmonitor.nl");
 
-            Assert.Greater(records.Length, 0);
-            Assert.IsTrue(records.Any(x => x.EndsWith("mail.protection.outlook.com")));
+            Assert.That(records.Length, Is.GreaterThan(0));
+            Assert.That(records.Any(x => x.EndsWith("mail.protection.outlook.com")), Is.True);
         }
     }
 }

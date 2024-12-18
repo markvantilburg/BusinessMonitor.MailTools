@@ -13,18 +13,17 @@ namespace BusinessMonitor.MailTools.Test
         {
             var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==; n=Hello, World!");
 
-            Assert.IsNotNull(record);
-            Assert.AreEqual("7JWI64WVIQ==", record.PublicKey);
-            Assert.AreEqual("Hello, World!", record.Notes);
-            Assert.AreEqual("rsa", record.KeyType);
-            Assert.AreEqual(0, record.Algorithms.Length);
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+            Assert.That(record.Notes, Is.EqualTo("Hello, World!"));
+            Assert.That(record.KeyType, Is.EqualTo("rsa"));
+            Assert.That(record.Algorithms.Length, Is.EqualTo(0));
 
             var record2 = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==; h=sha1:sha256; k=ed25519; s=email");
 
-            Assert.Contains("sha1", record2.Algorithms);
-            Assert.AreEqual("ed25519", record2.KeyType);
-            Assert.Contains("email", record2.ServiceType);
-
+            Assert.That(record2.Algorithms, Does.Contain("sha1"));
+            Assert.That(record2.KeyType, Is.EqualTo("ed25519"));
+            Assert.That(record2.ServiceType, Does.Contain("email"));
         }
 
         [Test]
@@ -32,14 +31,14 @@ namespace BusinessMonitor.MailTools.Test
         {
             var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==; t=y:s");
 
-            Assert.IsNotNull(record);
-            Assert.IsTrue((record.Flags & DkimFlags.Testing) != 0);
-            Assert.IsTrue((record.Flags & DkimFlags.SameDomain) != 0);
+            Assert.That(record, Is.Not.Null);
+            Assert.That((record.Flags & DkimFlags.Testing) != 0, Is.True);
+            Assert.That((record.Flags & DkimFlags.SameDomain) != 0, Is.True);
 
             var record2 = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==");
 
-            Assert.IsNotNull(record2);
-            Assert.AreEqual(DkimFlags.None, record2.Flags);
+            Assert.That(record2, Is.Not.Null);
+            Assert.That(record2.Flags, Is.EqualTo(DkimFlags.None));
         }
 
         [Test]
@@ -50,9 +49,9 @@ namespace BusinessMonitor.MailTools.Test
             var check = new DkimCheck(resolver);
             var record = check.GetDkimRecord("businessmonitor.nl", "test");
 
-            Assert.IsNotNull(record);
-            Assert.AreEqual("7JWI64WVIQ==", record.PublicKey);
-            Assert.AreEqual("Hello, World!", record.Notes);
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+            Assert.That(record.Notes, Is.EqualTo("Hello, World!"));
         }
 
         [Test]
@@ -105,8 +104,8 @@ namespace BusinessMonitor.MailTools.Test
         {
             var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=");
 
-            Assert.IsNotNull(record);
-            Assert.IsEmpty(record.PublicKey);
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.PublicKey, Is.Empty);
         }
     }
 }

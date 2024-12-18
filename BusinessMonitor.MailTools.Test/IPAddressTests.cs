@@ -15,9 +15,9 @@ namespace BusinessMonitor.MailTools.Test
             var address2 = IPAddress.Parse("192.168.1.100");
             var address3 = IPAddress.Parse("10.10.0.10");
 
-            Assert.IsTrue(IPAddressHelper.IsInRange(address1, network, 24));
-            Assert.IsFalse(IPAddressHelper.IsInRange(address2, network, 24));
-            Assert.IsFalse(IPAddressHelper.IsInRange(address3, network, 24));
+            Assert.That(IPAddressHelper.IsInRange(address1, network, 24), Is.True);
+            Assert.That(IPAddressHelper.IsInRange(address2, network, 24), Is.False);
+            Assert.That(IPAddressHelper.IsInRange(address3, network, 24), Is.False);
         }
 
         [Test]
@@ -28,8 +28,8 @@ namespace BusinessMonitor.MailTools.Test
             var address1 = IPAddress.Parse("192.0.2.129");
             var address2 = IPAddress.Parse("192.0.2.65");
 
-            Assert.IsTrue(IPAddressHelper.IsInRange(address1, network, 28));
-            Assert.IsFalse(IPAddressHelper.IsInRange(address2, network, 28));
+            Assert.That(IPAddressHelper.IsInRange(address1, network, 28), Is.True);
+            Assert.That(IPAddressHelper.IsInRange(address2, network, 28), Is.False);
         }
     }
 }

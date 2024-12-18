@@ -15,16 +15,16 @@ namespace BusinessMonitor.MailTools.Test
         {
             var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; p=reject; adkim=s; aspf=s");
 
-            Assert.IsNotNull(record);
-            Assert.AreEqual(AlignmentMode.Strict, record.DkimMode);
-            Assert.AreEqual(AlignmentMode.Strict, record.SpfMode);
-            Assert.AreEqual(ReceiverPolicy.Reject, record.Policy);
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.DkimMode, Is.EqualTo(AlignmentMode.Strict));
+            Assert.That(record.SpfMode, Is.EqualTo(AlignmentMode.Strict));
+            Assert.That(record.Policy, Is.EqualTo(ReceiverPolicy.Reject));
 
             var record2 = DmarcCheck.ParseDmarcRecord("v=DMARC1; p=reject; rf=afrf; ri=604800");
 
-            Assert.IsNotNull(record2);
-            Assert.Contains("afrf", record2.ReportFormat);
-            Assert.AreEqual(604800, record2.ReportInterval);
+            Assert.That(record2, Is.Not.Null);
+            Assert.That(record2.ReportFormat, Does.Contain("afrf"));
+            Assert.That(record2.ReportInterval, Is.EqualTo(604800));
         }
 
         [Test]
@@ -35,13 +35,13 @@ namespace BusinessMonitor.MailTools.Test
             var check = new DmarcCheck(resolver);
             var record = check.GetDmarcRecord("businessmonitor.nl");
 
-            Assert.IsNotNull(record);
-            Assert.AreEqual(AlignmentMode.Strict, record.DkimMode);
-            Assert.AreEqual(AlignmentMode.Strict, record.SpfMode);
-            Assert.AreEqual(ReceiverPolicy.Quarantine, record.Policy);
-            Assert.AreEqual(50, record.PercentageTag);
-            Assert.AreEqual(1, record.AggregatedReportAddresses.Length);
-            Assert.Contains("reports@example.com", record.AggregatedReportAddresses);
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.DkimMode, Is.EqualTo(AlignmentMode.Strict));
+            Assert.That(record.SpfMode, Is.EqualTo(AlignmentMode.Strict));
+            Assert.That(record.Policy, Is.EqualTo(ReceiverPolicy.Quarantine));
+            Assert.That(record.PercentageTag, Is.EqualTo(50));
+            Assert.That(record.AggregatedReportAddresses.Length, Is.EqualTo(1));
+            Assert.That(record.AggregatedReportAddresses, Does.Contain("reports@example.com"));
         }
 
         [Test]
@@ -49,21 +49,21 @@ namespace BusinessMonitor.MailTools.Test
         {
             var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; fo=1:d");
 
-            Assert.IsNotNull(record);
-            Assert.IsTrue((record.FailureOptions & FailureOptions.Any) != 0);
-            Assert.IsTrue((record.FailureOptions & FailureOptions.DkimFailure) != 0);
+            Assert.That(record, Is.Not.Null);
+            Assert.That((record.FailureOptions & FailureOptions.Any) != 0, Is.True);
+            Assert.That((record.FailureOptions & FailureOptions.DkimFailure) != 0, Is.True);
 
             var record2 = DmarcCheck.ParseDmarcRecord("v=DMARC1; fo=0:d:s");
 
-            Assert.IsNotNull(record2);
-            Assert.IsTrue((record2.FailureOptions & FailureOptions.All) != 0);
-            Assert.IsTrue((record2.FailureOptions & FailureOptions.DkimFailure) != 0);
-            Assert.IsTrue((record2.FailureOptions & FailureOptions.SpfFailure) != 0);
+            Assert.That(record2, Is.Not.Null);
+            Assert.That((record2.FailureOptions & FailureOptions.All) != 0, Is.True);
+            Assert.That((record2.FailureOptions & FailureOptions.DkimFailure) != 0, Is.True);
+            Assert.That((record2.FailureOptions & FailureOptions.SpfFailure) != 0, Is.True);
 
             var record3 = DmarcCheck.ParseDmarcRecord("v=DMARC1");
 
-            Assert.IsNotNull(record3);
-            Assert.AreEqual(FailureOptions.All, record3.FailureOptions);
+            Assert.That(record3, Is.Not.Null);
+            Assert.That(record3.FailureOptions, Is.EqualTo(FailureOptions.All));
         }
 
         [Test]
@@ -119,13 +119,13 @@ namespace BusinessMonitor.MailTools.Test
             var outlook = check.GetDmarcRecord("outlook.com");
             var protonmail = check.GetDmarcRecord("protonmail.com");
 
-            Assert.IsNotNull(businessmonitor);
-            Assert.IsNotNull(google);
-            Assert.IsNotNull(outlook);
-            Assert.IsNotNull(protonmail);
+            Assert.That(businessmonitor, Is.Not.Null);
+            Assert.That(google, Is.Not.Null);
+            Assert.That(outlook, Is.Not.Null);
+            Assert.That(protonmail, Is.Not.Null);
 
-            Assert.Contains("mailto:mailauth-reports@google.com", google.AggregatedReportAddresses);
-            Assert.Contains("mailto:rua@dmarc.microsoft", outlook.AggregatedReportAddresses);
+            Assert.That(google.AggregatedReportAddresses, Does.Contain("mailto:mailauth-reports@google.com"));
+            Assert.That(outlook.AggregatedReportAddresses, Does.Contain("mailto:rua@dmarc.microsoft"));
         }
     }
 }

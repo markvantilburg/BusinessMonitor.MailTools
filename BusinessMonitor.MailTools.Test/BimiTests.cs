@@ -15,19 +15,19 @@ namespace BusinessMonitor.MailTools.Test
         {
             var record = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg");
 
-            Assert.IsNotNull(record);
-            Assert.AreEqual("https://example.com/logo.svg", record.Location);
-            Assert.AreEqual("", record.Evidence);
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.Location, Is.EqualTo("https://example.com/logo.svg"));
+            Assert.That(record.Evidence, Is.EqualTo(""));
 
             var record2 = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; a=https://example.com/bimi.pem");
 
-            Assert.IsNotNull(record2);
-            Assert.AreEqual("https://example.com/logo.svg", record2.Location);
-            Assert.AreEqual("https://example.com/bimi.pem", record2.Evidence);
+            Assert.That(record2, Is.Not.Null);
+            Assert.That(record2.Location, Is.EqualTo("https://example.com/logo.svg"));
+            Assert.That(record2.Evidence, Is.EqualTo("https://example.com/bimi.pem"));
 
             var record3 = BimiCheck.ParseBimiRecord("v=BIMI1; l=");
 
-            Assert.IsNotNull(record3);
+            Assert.That(record3, Is.Not.Null);
         }
 
         [Test]
@@ -38,8 +38,8 @@ namespace BusinessMonitor.MailTools.Test
             var check = new BimiCheck(resolver);
             var record = check.GetBimiRecord("businessmonitor.nl");
 
-            Assert.IsNotNull(record);
-            Assert.AreEqual("https://businessmonitor.nl/logo.svg", record.Location);
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.Location, Is.EqualTo("https://businessmonitor.nl/logo.svg"));
         }
 
         [Test]
@@ -98,13 +98,13 @@ namespace BusinessMonitor.MailTools.Test
             var linkedin = check.GetBimiRecord("linkedin.com");
             var spotify = check.GetBimiRecord("spotify.com");
 
-            Assert.IsNotNull(linkedin);
-            Assert.IsNotNull(spotify);
+            Assert.That(linkedin, Is.Not.Null);
+            Assert.That(spotify, Is.Not.Null);
 
-            Assert.IsNotEmpty(linkedin.Location);
-            Assert.IsNotEmpty(linkedin.Evidence);
+            Assert.That(linkedin.Location, Is.Not.Empty);
+            Assert.That(linkedin.Evidence, Is.Not.Empty);
 
-            Assert.IsNotEmpty(spotify.Location); // Spotify has no evidence location
+            Assert.That(spotify.Location, Is.Not.Empty); // Spotify has no evidence location
         }
     }
 }
