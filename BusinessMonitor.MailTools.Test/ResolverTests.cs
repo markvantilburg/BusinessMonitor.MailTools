@@ -40,7 +40,7 @@ namespace BusinessMonitor.MailTools.Test
             var records = resolver.GetMailRecords("businessmonitor.nl");
 
             Assert.That(records.Length, Is.GreaterThan(0));
-            Assert.That(records.Any(x => x.EndsWith("mail.protection.outlook.com")), Is.True);
+            Assert.That(records, Has.Some.Matches<string>(x => x.EndsWith("mail.protection.outlook.com") || x.EndsWith("mail.protection.outlook.com.")));
         }
     }
 }
