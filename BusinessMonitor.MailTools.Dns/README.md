@@ -8,3 +8,12 @@ var check = new DkimCheck(resolver);
 
 check.GetDkimRecord(domain, selector);
 ```
+
+An example DoH resolver:
+
+```cs
+var resolver = new DoHResolver("https://cloudflare-dns.com/dns-query");
+var check = new DkimCheck(resolver);
+
+check.GetDkimRecord(domain, selector);
+```
