@@ -6,6 +6,7 @@
 - Upgrade nunit tests to the latest version
 - [SPF] Check if the domain has just one spf record.
 - [SPF] Change the include check to validate if it can be a domain
+- [DNS] Example DNS over HTTPS (DoH) resolver
 
 ## v1.0.7
 
