@@ -3,7 +3,9 @@
 ## vNext
 
 - Migrate to .net8 [#4](https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/4)
-- Check if the domain has just one spf record.
+- Upgrade nunit tests to the latest version
+- [SPF] Check if the domain has just one spf record.
+- [SPF] Change the include check to validate if it can be a domain
 
 ## v1.0.7
 
