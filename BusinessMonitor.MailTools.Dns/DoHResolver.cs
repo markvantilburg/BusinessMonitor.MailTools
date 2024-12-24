@@ -62,7 +62,7 @@ namespace BusinessMonitor.MailTools.Dns
             {
                 var records = response.Answer
                     .Where(record => record.type == 16)
-                    .Select(record => record.data.Trim('"'));
+                    .Select(record => record.data.Trim('"').Replace("\"",""));
 
                 return records.ToArray();
             }
