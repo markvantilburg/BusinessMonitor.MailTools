@@ -111,6 +111,12 @@ namespace BusinessMonitor.MailTools.Bimi
                         record.Location = val;
 
                         break;
+
+                    // Avatar Preference
+                    case "s":
+                        record.AvatarPreference = GetAvatarPreference(val);
+
+                        break;
                 }
             }
 
@@ -147,6 +153,16 @@ namespace BusinessMonitor.MailTools.Bimi
             {
                 throw new BimiInvalidException($"BIMI record {type} is invalid, transport must be HTTPS");
             }
+        }
+
+        private static AvatarPreference GetAvatarPreference(string value)
+        {
+            if (value != "personal" && value != "bimi")
+            {
+                throw new BimiInvalidException("Invalid avatar preference, must be personal or bimi");
+            }
+
+            return value == "personal" ? AvatarPreference.Personal : AvatarPreference.Bimi;
         }
     }
 }
