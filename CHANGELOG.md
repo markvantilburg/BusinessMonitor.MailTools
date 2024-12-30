@@ -1,12 +1,12 @@
 # Changelog
 
 ## vNext
-
 - Migrate to .net8 [#4](https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/4)
 - Upgrade nunit tests to the latest version
 - [SPF] Check if the domain has just one spf record.
 - [SPF] Change the include check to validate if it can be a domain
 - [DNS] Example DNS over HTTPS (DoH) resolver
+- [BIMI] Add support for the avatar preference tag [#5](https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/5)
 
 ## v1.0.7
 
