@@ -137,9 +137,6 @@ namespace BusinessMonitor.MailTools.Dkim
                         }
 
                         break;
-
-                    default:
-                        break;
                 }
             }
 

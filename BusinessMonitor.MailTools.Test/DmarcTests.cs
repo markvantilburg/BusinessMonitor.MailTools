@@ -109,6 +109,17 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestNotFound()
+        {
+            var check = new DmarcCheck(new DummyResolver());
+
+            Assert.Throws<DmarcNotFoundException>(() =>
+            {
+                check.GetDmarcRecord("example.com");
+            });
+        }
+
+        [Test]
         public void TestLookups()
         {
             var resolver = new DnsResolver(IPAddress.Parse("1.1.1.1")); // Cloudflare DNS

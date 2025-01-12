@@ -260,9 +260,6 @@ namespace BusinessMonitor.MailTools.Spf
                     directive.Domain = value;
 
                     break;
-
-                default:
-                    break;
             }
 
             return directive;

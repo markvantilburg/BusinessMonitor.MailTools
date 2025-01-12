@@ -100,6 +100,17 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestNotFound()
+        {
+            var check = new DkimCheck(new DummyResolver());
+
+            Assert.Throws<DkimNotFoundException>(() =>
+            {
+                check.GetDkimRecord("example.com", "test");
+            });
+        }
+
+        [Test]
         public void TestRevoked()
         {
             var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=");
