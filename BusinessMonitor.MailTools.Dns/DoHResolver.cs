@@ -89,10 +89,11 @@ namespace BusinessMonitor.MailTools.Dns
             {
                 return Array.Empty<string>();
             }
-            
+
+            // if the record looks like 110 srv.example.nl returns srv.example.nl
             var records = response.Answer
                 .Where(record => record.type == 15)
-                .Select(record => record.data);
+                .Select(record => record.data.Contains(" ") ? record.data.Split(' ')[1] : record.data);
 
             return records.ToArray();
         }
@@ -147,10 +148,11 @@ namespace BusinessMonitor.MailTools.Dns
             {
                 return Array.Empty<string>();
             }
-            
+
+            // if the record looks like 110 srv.example.nl returns srv.example.nl
             var records = response.Answer
                 .Where(record => record.type == 15)
-                .Select(record => record.data);
+                .Select(record => record.data.Contains(" ") ? record.data.Split(' ')[1] : record.data);
 
             return records.ToArray();
         }
