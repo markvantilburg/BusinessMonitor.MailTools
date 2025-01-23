@@ -136,6 +136,12 @@ namespace BusinessMonitor.MailTools.Dns
         {
             // MX 15 mail exchange [rfc1035]
             var response = await QueryDnsAsync(domain, "MX");
+
+            if (response.Answer == null)
+            {
+                return Array.Empty<string>();
+            }
+            
             var records = response.Answer
                 .Where(record => record.type == 15)
                 .Select(record => record.data);
