@@ -74,6 +74,12 @@ namespace BusinessMonitor.MailTools.Dns
         {
             // A 1 a host address [rfc1035]
             var response = QueryDns(domain, "A");
+
+            if (response.Answer == null)
+            {
+                return Array.Empty<IPAddress>();
+            }
+
             var records = response.Answer
                 .Where(record => record.type == 1)
                 .Select(record => IPAddress.Parse(record.data));
