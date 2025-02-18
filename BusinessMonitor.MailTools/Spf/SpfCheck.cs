@@ -290,6 +290,8 @@ namespace BusinessMonitor.MailTools.Spf
                 {
                     throw new SpfInvalidException(string.Format("A ({0}) does not resolve",directive.Domain));
                 }
+
+                return ARecords;
             }
 
             // Lookup all MX records and do a lookup on those
