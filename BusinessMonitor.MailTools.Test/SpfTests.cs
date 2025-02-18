@@ -163,6 +163,20 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void FailingARecordDoesNotResolve()
+        {
+            DummyResolver resolver = new DummyResolver();
+            var check = new SpfCheck(resolver);
+
+            resolver.AddText("nl.nl", "v=spf1 a -all");
+
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                check.GetSpfRecord("nl.nl");
+            });
+        }
+
+        [Test]
         public void TestWhitespaces()
         {
             var record = SpfCheck.ParseSpfRecord("v=spf1  ip4:192.0.2.1   -all    ");

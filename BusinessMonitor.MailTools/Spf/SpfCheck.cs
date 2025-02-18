@@ -285,7 +285,11 @@ namespace BusinessMonitor.MailTools.Spf
             // If a mechanism lookup the addresses and return
             if (directive.Mechanism == SpfMechanism.A)
             {
-                return _resolver.GetAddressRecords(directive.Domain);
+                var ARecords = _resolver.GetAddressRecords(directive.Domain);
+                if (ARecords.Length < 1)
+                {
+                    throw new SpfInvalidException(string.Format("A ({0}) does not resolve",directive.Domain));
+                }
             }
 
             // Lookup all MX records and do a lookup on those
