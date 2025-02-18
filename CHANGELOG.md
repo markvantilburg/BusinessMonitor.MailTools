@@ -1,5 +1,8 @@
 # Changelog
 
+## vNext
+- If the SPF record contains A but that does not resolve throw an error
+
 ## v1.0.8
 - Migrate to .net8 [#4](https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/4)
 - Upgrade nunit tests to the latest version
