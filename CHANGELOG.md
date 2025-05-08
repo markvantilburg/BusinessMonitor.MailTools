@@ -2,6 +2,7 @@
 
 ## vNext
 - If the SPF record contains A but that does not resolve throw an error
+- [MX]  Add a new method to validate MX records, if one of the domains resolves to "localhost" we mark it as invalid
 
 ## v1.0.8
 - Migrate to .net8 [#4](https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/4)
