@@ -49,7 +49,7 @@ namespace BusinessMonitor.MailTools.Test
             // Assert
             Assert.That(result.HasMxRecords, Is.True);
             Assert.That(1, Is.EqualTo(result.InvalidMxRecords.Count));
-            Assert.That("bogus.dmrmail.nl", Does.Contain(result.InvalidMxRecords));
+            Assert.That(result.InvalidMxRecords, Does.Contain("bogus.dmrmail.nl"));
         }
 
         [Test]
