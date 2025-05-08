@@ -27,8 +27,8 @@ namespace BusinessMonitor.MailTools.Test
             var result = validator.ValidateMxRecords("businessmonitor.nl");
 
             // Assert
-            Assert.IsTrue(result.HasMxRecords);
-            Assert.IsEmpty(result.InvalidMxRecords);
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
         }
 
         [Test]
@@ -47,9 +47,9 @@ namespace BusinessMonitor.MailTools.Test
             var result = validator.ValidateMxRecords("geen.nl");
 
             // Assert
-            Assert.IsTrue(result.HasMxRecords);
-            Assert.AreEqual(1, result.InvalidMxRecords.Count);
-            Assert.Contains("bogus.dmrmail.nl", result.InvalidMxRecords);
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(1, Is.EqualTo(result.InvalidMxRecords.Count));
+            Assert.That("bogus.dmrmail.nl", Does.Contain(result.InvalidMxRecords));
         }
 
         [Test]
@@ -66,8 +66,8 @@ namespace BusinessMonitor.MailTools.Test
             var result = validator.ValidateMxRecords("nonexistentdomain.nl");
 
             // Assert
-            Assert.IsFalse(result.HasMxRecords);
-            Assert.IsEmpty(result.InvalidMxRecords);
+            Assert.That(result.HasMxRecords, Is.False);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
         }
     }
 }
