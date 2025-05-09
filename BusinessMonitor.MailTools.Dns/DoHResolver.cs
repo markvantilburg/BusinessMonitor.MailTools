@@ -32,10 +32,6 @@ namespace BusinessMonitor.MailTools.Dns
                 {
                     DoHEndpoint = "https://dns.google/resolve";
                 }
-                else if (address.Equals(IPAddress.Parse("9.9.9.9")) || address.Equals(IPAddress.Parse("9.9.9.11")))
-                {
-                    DoHEndpoint = "https://dns.quad9.net/dns-query";
-                }
             }
         }
 
