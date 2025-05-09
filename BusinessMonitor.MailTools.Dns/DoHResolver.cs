@@ -34,7 +34,7 @@ namespace BusinessMonitor.MailTools.Dns
                 }
                 else if (address.Equals(IPAddress.Parse("9.9.9.9")) || address.Equals(IPAddress.Parse("9.9.9.11")))
                 {
-                    DoHEndpoint = "https://dns.quad9.net:5053/dns-query";
+                    DoHEndpoint = "https://dns.quad9.net/dns-query";
                 }
             }
         }
