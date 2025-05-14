@@ -286,7 +286,9 @@ namespace ConsoleApp2
                                 .Select(part => part.TrimStart('0')) // Optionally remove leading zeros for each segment
                         );
 
-
+        case (ushort)DnsRecordType.CNAME: // CNAME
+            return ParseDomainName(responseBytes, startIndex);
+                        
                     default:
                         // Return raw hex for unsupported types
                         return BitConverter.ToString(responseBytes, startIndex, length).Replace("-", "");
