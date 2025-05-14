@@ -124,7 +124,8 @@ namespace ConsoleApp2
         {
             var dnsQuery = DnsMessageBuilder.BuildQuery(domain, queryType);
 
-            using var httpClient = new HttpClient();
+            using (var httpClient = new HttpClient())
+            {
             var content = new ByteArrayContent(dnsQuery);
             content.Headers.Add("Content-Type", "application/dns-message");
 
@@ -133,6 +134,7 @@ namespace ConsoleApp2
 
             var responseBytes = await response.Content.ReadAsByteArrayAsync();
             return DnsMessageParser.ParseResponse(responseBytes);
+            }
         }
 
         // Helper classes for building and parsing DNS messages
