@@ -233,6 +233,36 @@ namespace ConsoleApp2
                 return answers.ToArray();
             }
 
+            private static string ParseDomainName(byte[] responseBytes, int startIndex)
+            {
+                var domainName = new StringBuilder();
+                int currentIndex = startIndex;
+
+                while (responseBytes[currentIndex] != 0)
+                {
+                    if ((responseBytes[currentIndex] & 0xC0) == 0xC0)
+                    {
+                        // Compression pointer
+                        int pointer = ((responseBytes[currentIndex] & 0x3F) << 8) | responseBytes[currentIndex + 1];
+                        domainName.Append(ParseDomainName(responseBytes, pointer));
+                        //currentIndex += 2; // Move past the pointer
+                        break;
+                    }
+
+                    // Label
+                    int labelLength = responseBytes[currentIndex];
+                    currentIndex++;
+                    domainName.Append(Encoding.UTF8.GetString(responseBytes, currentIndex, labelLength));
+                    currentIndex += labelLength;
+                    if (responseBytes[currentIndex] != 0)
+                    {
+                        domainName.Append(".");
+                    }
+                }
+
+                return domainName.ToString();
+            }
+            
             private static string ParseRData(byte[] responseBytes, int startIndex, int length, ushort type)
             {
                 switch (type)
@@ -245,7 +275,7 @@ namespace ConsoleApp2
 
                     case (ushort)DnsRecordType.MX: // MX
                         ushort preference = (ushort)((responseBytes[startIndex] << 8) | responseBytes[startIndex + 1]);
-                        string exchange = Encoding.UTF8.GetString(responseBytes, startIndex + 2, length - 2);
+                        string exchange = ParseDomainName(responseBytes, startIndex + 2);
                         return $"{preference} {exchange}";
 
                     case (ushort)DnsRecordType.AAAA: // AAAA (IPv6 address)
