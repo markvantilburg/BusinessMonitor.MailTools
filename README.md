@@ -70,3 +70,27 @@ foreach (var directive in record.Directives)
     }
 }
 ```
+
+Validate MX records for a domain:
+
+```cs
+var validator = new MxValidator(resolver);
+var result = validator.ValidateMxRecords("example.com");
+
+if (!result.HasMxRecords)
+{
+    Console.WriteLine("No MX records found.");
+}
+else if (result.InvalidMxRecords.Count > 0)
+{
+    Console.WriteLine("Invalid MX records:");
+    foreach (var mx in result.InvalidMxRecords)
+    {
+        Console.WriteLine(mx);
+    }
+}
+else
+{
+    Console.WriteLine("All MX records are valid.");
+}
+```
