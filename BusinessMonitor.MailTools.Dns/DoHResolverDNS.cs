@@ -20,7 +20,16 @@ namespace ConsoleApp2
         AAAA = 28,   // IPv6 address
         SRV = 33,    // Service location
         OPT = 41,    // EDNS (Extension mechanisms for DNS)
-        ANY = 255    // Any type of record
+        ANY = 255,    // Any type of record
+
+        // DNSSEC record types
+        DS = 43,           // Delegation Signer
+        RRSIG = 46,        // Resource Record Signature
+        NSEC = 47,         // Next Secure
+        DNSKEY = 48,       // Public Key
+        NSEC3 = 50,        // Next Secure v3
+        NSEC3PARAM = 51,   // NSEC3 parameters
+        DLV = 32769        // DNSSEC Lookaside Validation (obsolete)
     }
 
     public class DoHResolverDNS
