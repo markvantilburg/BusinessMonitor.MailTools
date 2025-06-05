@@ -32,6 +32,7 @@ namespace ConsoleApp2
             "https://dns.google/dns-query",
             "https://dns.quad9.net/dns-query",
             "https://doh.opendns.com/dns-query",
+            "https://unfiltered.joindns4.eu/dns-query"
         };
 
         /// <summary>
