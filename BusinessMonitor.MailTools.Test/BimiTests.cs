@@ -33,12 +33,12 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestAvatar()
         {
-            var record = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; s=personal");
+            var record = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; avp=personal");
 
             Assert.That(record, Is.Not.Null);
             Assert.That(record.AvatarPreference, Is.EqualTo(AvatarPreference.Personal));
 
-            var record2 = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; s=bimi");
+            var record2 = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; avp=bimi");
 
             Assert.That(record2, Is.Not.Null);
             Assert.That(record2.AvatarPreference, Is.EqualTo(AvatarPreference.Bimi));
@@ -67,7 +67,7 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=BIMI1; l=invalidlink")]
         [TestCase("v=BIMI1; a=invalidlink l=https://businessmonitor.nl/logo.svg")]
         [TestCase("v=BIMI1; l=http://nothttpstransport")]
-        [TestCase("v=BIMI1; l=https://example.com/logo.svg; s=invalid")]
+        [TestCase("v=BIMI1; l=https://example.com/logo.svg; avp=invalid")]
         public void TestInvalid(string value)
         {
             Assert.Throws<BimiInvalidException>(() =>
