@@ -113,7 +113,9 @@ namespace BusinessMonitor.MailTools.Bimi
                         break;
 
                     // Avatar Preference
+                    // TODO remove the s= tag after a while
                     case "s":
+                    case "avp":
                         record.AvatarPreference = GetAvatarPreference(val);
 
                         break;
