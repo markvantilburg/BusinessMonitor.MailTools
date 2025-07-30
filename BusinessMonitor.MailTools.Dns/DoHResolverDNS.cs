@@ -136,14 +136,14 @@ namespace ConsoleApp2
 
             using (var httpClient = new HttpClient())
             {
-            var content = new ByteArrayContent(dnsQuery);
-            content.Headers.Add("Content-Type", "application/dns-message");
+                var content = new ByteArrayContent(dnsQuery);
+                content.Headers.Add("Content-Type", "application/dns-message");
 
-            var response = await httpClient.PostAsync(DoHEndpoint, content);
-            response.EnsureSuccessStatusCode();
+                var response = await httpClient.PostAsync(DoHEndpoint, content);
+                response.EnsureSuccessStatusCode();
 
-            var responseBytes = await response.Content.ReadAsByteArrayAsync();
-            return DnsMessageParser.ParseResponse(responseBytes);
+                var responseBytes = await response.Content.ReadAsByteArrayAsync();
+                return DnsMessageParser.ParseResponse(responseBytes);
             }
         }
 
@@ -272,7 +272,7 @@ namespace ConsoleApp2
 
                 return domainName.ToString();
             }
-            
+
             private static string ParseRData(byte[] responseBytes, int startIndex, int length, ushort type)
             {
                 switch (type)
@@ -296,9 +296,9 @@ namespace ConsoleApp2
                                 .Select(part => part.TrimStart('0')) // Optionally remove leading zeros for each segment
                         );
 
-        case (ushort)DnsRecordType.CNAME: // CNAME
-            return ParseDomainName(responseBytes, startIndex);
-                        
+                    case (ushort)DnsRecordType.CNAME: // CNAME
+                        return ParseDomainName(responseBytes, startIndex);
+
                     default:
                         // Return raw hex for unsupported types
                         return BitConverter.ToString(responseBytes, startIndex, length).Replace("-", "");
