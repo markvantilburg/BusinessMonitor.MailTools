@@ -113,7 +113,7 @@ namespace BusinessMonitor.MailTools.Bimi
                         break;
 
                     // Avatar Preference
-                    // TODO remove the s= tag after a while
+                    // TODO s= tag was removed in v9, remove when spec no longer is a draft
                     case "s":
                     case "avp":
                         record.AvatarPreference = GetAvatarPreference(val);
@@ -159,12 +159,13 @@ namespace BusinessMonitor.MailTools.Bimi
 
         private static AvatarPreference GetAvatarPreference(string value)
         {
-            if (value != "personal" && value != "bimi")
+            // TODO bimi value was removed in v10, remove when spec no longer is a draft
+            if (value != "personal" && value != "brand" && value != "bimi")
             {
-                throw new BimiInvalidException("Invalid avatar preference, must be personal or bimi");
+                throw new BimiInvalidException("Invalid avatar preference, must be personal or brand");
             }
 
-            return value == "personal" ? AvatarPreference.Personal : AvatarPreference.Bimi;
+            return value == "personal" ? AvatarPreference.Personal : AvatarPreference.Brand;
         }
     }
 }

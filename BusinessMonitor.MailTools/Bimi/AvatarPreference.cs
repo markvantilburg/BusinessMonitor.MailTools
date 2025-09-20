@@ -3,6 +3,6 @@
     public enum AvatarPreference
     {
         Personal,
-        Bimi
+        Brand
     }
 }
