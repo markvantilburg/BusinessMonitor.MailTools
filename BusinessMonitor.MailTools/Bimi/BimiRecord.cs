@@ -9,7 +9,7 @@
         {
             Evidence = "";
             Location = null;
-            AvatarPreference = AvatarPreference.Bimi;
+            AvatarPreference = AvatarPreference.Brand;
         }
 
         /// <summary>

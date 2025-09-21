@@ -38,15 +38,15 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(record, Is.Not.Null);
             Assert.That(record.AvatarPreference, Is.EqualTo(AvatarPreference.Personal));
 
-            var record2 = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; avp=bimi");
+            var record2 = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; avp=brand");
 
             Assert.That(record2, Is.Not.Null);
-            Assert.That(record2.AvatarPreference, Is.EqualTo(AvatarPreference.Bimi));
+            Assert.That(record2.AvatarPreference, Is.EqualTo(AvatarPreference.Brand));
 
             var record3 = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg");
 
             Assert.That(record3, Is.Not.Null);
-            Assert.That(record3.AvatarPreference, Is.EqualTo(AvatarPreference.Bimi));
+            Assert.That(record3.AvatarPreference, Is.EqualTo(AvatarPreference.Brand));
         }
 
         [Test]
