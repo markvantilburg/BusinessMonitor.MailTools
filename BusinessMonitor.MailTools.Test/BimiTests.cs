@@ -31,6 +31,21 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestSelectors()
+        {
+            var record = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; lps=hello-world");
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.LocalPartSelectors, Contains.Item("hello-world"));
+
+            var record2 = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; lps=hello , world , yes");
+
+            Assert.That(record2, Is.Not.Null);
+            Assert.That(record2.LocalPartSelectors, Contains.Item("hello"));
+            Assert.That(record2.LocalPartSelectors, Contains.Item("world"));
+        }
+
+        [Test]
         public void TestAvatar()
         {
             var record = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; avp=personal");
@@ -61,6 +76,9 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(record.Location, Is.EqualTo("https://businessmonitor.nl/logo.svg"));
         }
 
+        // Can't do new string() since const
+        private const string LongSelector = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
         [Test]
         [TestCase("")]
         [TestCase("v=BIMI1")]
@@ -68,6 +86,8 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=BIMI1; a=invalidlink l=https://businessmonitor.nl/logo.svg")]
         [TestCase("v=BIMI1; l=http://nothttpstransport")]
         [TestCase("v=BIMI1; l=https://example.com/logo.svg; avp=invalid")]
+        [TestCase("v=BIMI1; l=https://example.com/logo.svg; lps=???")]
+        [TestCase("v=BIMI1; l=https://example.com/logo.svg; lps=" + LongSelector)]
         public void TestInvalid(string value)
         {
             Assert.Throws<BimiInvalidException>(() =>

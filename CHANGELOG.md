@@ -1,6 +1,7 @@
 # Changelog
 
 ## vNext
+- [BIMI] Add the new local-part selector tag (https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/11)
 - [BIMI] Update the new preference tag (https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/10)
 
 ## v1.0.9
