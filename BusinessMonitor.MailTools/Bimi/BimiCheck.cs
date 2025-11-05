@@ -1,5 +1,6 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
+using BusinessMonitor.MailTools.Util;
 
 namespace BusinessMonitor.MailTools.Bimi
 {
@@ -112,6 +113,12 @@ namespace BusinessMonitor.MailTools.Bimi
 
                         break;
 
+                    // Local-Part Selector
+                    case "lps":
+                        record.LocalPartSelectors = GetLocalPartSelectors(val);
+
+                        break;
+
                     // Avatar Preference
                     // TODO s= tag was removed in v9, remove when spec no longer is a draft
                     case "s":
@@ -155,6 +162,26 @@ namespace BusinessMonitor.MailTools.Bimi
             {
                 throw new BimiInvalidException($"BIMI record {type} is invalid, transport must be HTTPS");
             }
+        }
+
+        private static string[] GetLocalPartSelectors(string value)
+        {
+            var selectors = value.SplitTrim(',');
+
+            foreach (var selector in selectors)
+            {
+                if (!selector.All(x => char.IsLetterOrDigit(x) || x == '-'))
+                {
+                    throw new BimiInvalidException("Invalid local-part selector, selector must only contain alphanumeric characters or dashes");
+                }
+
+                if (selector.Length > 63)
+                {
+                    throw new BimiInvalidException("Invalid local-part selector, selector must be at most 63 characters long");
+                }
+            }
+
+            return selectors;
         }
 
         private static AvatarPreference GetAvatarPreference(string value)

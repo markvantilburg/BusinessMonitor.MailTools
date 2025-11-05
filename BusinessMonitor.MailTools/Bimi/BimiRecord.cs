@@ -9,6 +9,7 @@
         {
             Evidence = "";
             Location = null;
+            LocalPartSelectors = [];
             AvatarPreference = AvatarPreference.Brand;
         }
 
@@ -21,6 +22,11 @@
         /// Gets the location of the Brand Indicator file
         /// </summary>
         public string? Location { get; internal set; }
+
+        /// <summary>
+        /// Gets the local-part selectors
+        /// </summary>
+        public string[] LocalPartSelectors { get; internal set; }
 
         /// <summary>
         /// Gets the avatar preference
