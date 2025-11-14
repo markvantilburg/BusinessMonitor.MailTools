@@ -3,6 +3,7 @@
 ## vNext
 - [BIMI] Add the new local-part selector tag (https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/11)
 - [BIMI] Update the new preference tag (https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/10)
+- Build, add a .net10 build
 
 ## v1.0.9
 - If the SPF record contains A but that does not resolve throw an error
