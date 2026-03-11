@@ -29,6 +29,11 @@ namespace BusinessMonitor.MailTools.Spf
         private int _lookups;
 
         /// <summary>
+        /// HashSet to track seen IP addresses
+        /// </summary>
+        private static HashSet<SpfAddress> seenIpAddresses = new HashSet<SpfAddress>();
+        
+        /// <summary>
         /// Initializes a new SPF check instance with the provided DNS resolver
         /// </summary>
         /// <param name="resolver">The DNS resolver to use</param>
@@ -249,10 +254,31 @@ namespace BusinessMonitor.MailTools.Spf
                     break;
 
                 case SpfMechanism.IP4:
-                case SpfMechanism.IP6:
-                    var address = SpfAddress.Parse(value);
-                    if (directive.Mechanism == SpfMechanism.IP4) directive.IP4 = address; else directive.IP6 = address;
+                    var address4 = SpfAddress.Parse(value);
+                    // Check if the IP4 has already been seen
+                    if (seenIpAddresses.Contains(address4))
+                    {
+                        throw new SpfInvalidException($"Duplicate IP4 mechanism detected: {address4}");
+                    }
 
+                    // Add the IP address to the list
+                    seenIpAddresses.Add(address4);
+                    directive.IP4 = address4;
+
+                    break;
+
+                case SpfMechanism.IP6:
+                    var address6 = SpfAddress.Parse(value);
+                    // Check if the IP6 has already been seen
+                    if (seenIpAddresses.Contains(address6))
+                    {
+                        throw new SpfInvalidException($"Duplicate IP6 mechanism detected: {address6}");
+                    }
+
+                    // Add the IP address to the list
+                    seenIpAddresses.Add(address6);
+                    directive.IP6 = address6;
+                    
                     break;
 
                 case SpfMechanism.A:
