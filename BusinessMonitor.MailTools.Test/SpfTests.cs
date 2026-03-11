@@ -111,6 +111,8 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=spf1 -boop")]
         [TestCase("v=spf1 boop:boop")]
         [TestCase("v=spf1 include:include:businessmonitor.nl")]
+        [TestCase("v=spf1 a ip4:192.168.1.1 ip4:192.168.1.1 ~all")]
+        [TestCase("v=spf1 a ip6:::1 ip6:::1 ~all")]
         public void TestInvalid(string value)
         {
             Assert.Throws<SpfInvalidException>(() =>
