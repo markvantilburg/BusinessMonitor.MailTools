@@ -58,6 +58,8 @@ namespace BusinessMonitor.MailTools.Spf
         /// <exception cref="SpfLookupException">An include lookup failed, see inner exception</exception>
         public SpfRecord GetSpfRecord(string domain)
         {
+            seenIpAddresses = new HashSet<SpfAddress>();
+            
             if (domain == null)
             {
                 throw new ArgumentNullException(nameof(domain));
@@ -145,6 +147,8 @@ namespace BusinessMonitor.MailTools.Spf
         /// <exception cref="SpfInvalidException">The SPF record was invalid</exception>
         public static SpfRecord ParseSpfRecord(string value)
         {
+            seenIpAddresses = new HashSet<SpfAddress>();
+            
             if (value == null)
             {
                 throw new ArgumentNullException(nameof(value));
