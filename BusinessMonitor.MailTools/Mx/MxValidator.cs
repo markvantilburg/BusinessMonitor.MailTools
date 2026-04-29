@@ -39,9 +39,9 @@ namespace BusinessMonitor.MailTools.Mx
             foreach (var mxRecord in mxRecords)
             {
                 var ipAddresses = _resolver.GetAddressRecords(mxRecord);
-                if (ipAddresses.Any(ip => ip.ToString() == "127.0.0.1"))
-                {
-                    result.InvalidMxRecords.Add(mxRecord);
+				if (ipAddresses != null && ipAddresses.Any(ip => ip.ToString() == "127.0.0.1"))
+				{
+					result.InvalidMxRecords.Add(mxRecord);
                 }
             }
 
