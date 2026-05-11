@@ -6,6 +6,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <Nullable>disable</Nullable>
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+
   <PropertyGroup>
     <Title>BusinessMonitor.MailTools</Title>
     <Description>A .NET library providing utilities for mail such as DKIM, SPF and DMARC.</Description>
