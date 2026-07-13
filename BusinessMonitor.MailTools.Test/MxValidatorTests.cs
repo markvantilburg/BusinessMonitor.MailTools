@@ -17,9 +17,9 @@ namespace BusinessMonitor.MailTools.Test
             mockResolver.Setup(r => r.GetMailRecords("businessmonitor.nl"))
                 .Returns(new[] { "mail1.businessmonitor.nl", "mail2.businessmonitor.nl" });
             mockResolver.Setup(r => r.GetAddressRecords("mail1.businessmonitor.nl"))
-                .Returns(new[] { System.Net.IPAddress.Parse("192.168.1.1") });
+                .Returns(new[] { System.Net.IPAddress.Parse("222.222.1.1") });
             mockResolver.Setup(r => r.GetAddressRecords("mail2.businessmonitor.nl"))
-                .Returns(new[] { System.Net.IPAddress.Parse("192.168.1.2") });
+                .Returns(new[] { System.Net.IPAddress.Parse("222.222.1.2") });
 
             var validator = new MxValidator(mockResolver.Object);
 
