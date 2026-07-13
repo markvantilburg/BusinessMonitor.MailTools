@@ -2,6 +2,7 @@
 
 ## vNext
 - [SPF] Detect duplicate IP4/IP6 mechanisms in SPF records [Issue:#13](https://github.com/markvantilburg/BusinessMonitor.MailTools/issues/13)
+- [MX] Improve the localhost/non routable IP addresses detection [Issue:#7](https://github.com/markvantilburg/BusinessMonitor.MailTools/issues/7)
 
 ## v1.0.10
 - [BIMI] Add the new local-part selector tag (https://github.com/markvantilburg/BusinessMonitor.MailTools/pull/11)
