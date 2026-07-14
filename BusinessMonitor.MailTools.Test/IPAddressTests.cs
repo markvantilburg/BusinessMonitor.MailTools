@@ -31,5 +31,18 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(IPAddressHelper.IsInRange(address1, network, 28), Is.True);
             Assert.That(IPAddressHelper.IsInRange(address2, network, 28), Is.False);
         }
+
+        [Test]
+        public void TestMixedAddressFamilies()
+        {
+            var network4 = IPAddress.Parse("1.2.3.0");
+            var network6 = IPAddress.Parse("2001:db8::");
+
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("2001:db8::1"), network4, 24), Is.False);
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("::1"), network4, 24), Is.False);
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("1.2.3.4"), network6, 32), Is.False);
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("2001:db8::1"), network6, 32), Is.True);
+        }
+
     }
 }

@@ -6,9 +6,21 @@ namespace BusinessMonitor.MailTools.Util
 {
     internal static class IPAddressHelper
     {
+        /// <summary>
+        /// Is the ip address in the range
+        /// </summary>
+        /// <param name="address">The address to check</param>
+        /// <param name="network">The network the address should be a part of</param>
+        /// <param name="length">Total range of the network</param>
+        /// <returns></returns>
         internal static bool IsInRange(IPAddress address, IPAddress network, int length)
         {
-            var mask = GetMask(address.AddressFamily, out var bytes);
+            if (address.AddressFamily != network.AddressFamily)
+            {
+                return false;
+            }
+
+            var mask = GetMask(network.AddressFamily, out var bytes);
             var start = ToBigInteger(network.GetAddressBytes());
             var end = start + ~(mask << (bytes * 8 - length));
 
