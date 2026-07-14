@@ -78,6 +78,41 @@ namespace BusinessMonitor.MailTools.Test
 
         // Can't do new string() since const
         private const string LongSelector = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        private const string MaxSelector = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        [Test]
+        public void TestSelectorValidation()
+        {
+            // Valid DNS labels
+            var record = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; lps=hello-world,ABC123,a,1selector,hello_world," + MaxSelector);
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.LocalPartSelectors, Contains.Item("hello-world"));
+            Assert.That(record.LocalPartSelectors, Contains.Item("ABC123"));
+            Assert.That(record.LocalPartSelectors, Contains.Item("a"));
+            Assert.That(record.LocalPartSelectors, Contains.Item("1selector"));
+            Assert.That(record.LocalPartSelectors, Contains.Item(MaxSelector)); // 63 characters, boundary
+        }
+
+        [Test]
+        [TestCase("lps=-hello")]         // leading hyphen
+        [TestCase("lps=hello-")]         // trailing hyphen
+        [TestCase("lps=hello,-world")]   // invalid entry among valid ones
+        [TestCase("lps=hello.world")]    // dot not allowed
+        [TestCase("lps=héllo")]          // non-ASCII letter
+        [TestCase("lps=日本")]           // non-ASCII letters
+        [TestCase("lps=٣٤٥")]            // non-ASCII digits
+        [TestCase("lps=")]               // empty value
+        [TestCase("lps= ")]              // whitespace-only value
+        [TestCase("lps=,,")]             // only separators
+        [TestCase("lps= , , ")]          // only whitespace entries
+        public void TestInvalidSelectors(string lps)
+        {
+            Assert.Throws<BimiInvalidException>(() =>
+            {
+                BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg; " + lps);
+            });
+        }
 
         [Test]
         [TestCase("")]

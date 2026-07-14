@@ -1,6 +1,7 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Util;
+using System.Text.RegularExpressions;
 
 namespace BusinessMonitor.MailTools.Bimi
 {
@@ -24,7 +25,7 @@ namespace BusinessMonitor.MailTools.Bimi
 
             _resolver = resolver;
         }
-        
+
         /// <summary>
         /// Gets a BIMI record from a domain
         /// </summary>
@@ -168,20 +169,29 @@ namespace BusinessMonitor.MailTools.Bimi
         {
             var selectors = value.SplitTrim(',');
 
+            if (selectors.Length == 0)
+            {
+                throw new BimiInvalidException("Invalid local-part selector, value must not be empty");
+            }
+
             foreach (var selector in selectors)
             {
-                if (!selector.All(x => char.IsLetterOrDigit(x) || x == '-'))
+                if (!IsValidDnsLabel(selector))
                 {
-                    throw new BimiInvalidException("Invalid local-part selector, selector must only contain alphanumeric characters or dashes");
-                }
-
-                if (selector.Length > 63)
-                {
-                    throw new BimiInvalidException("Invalid local-part selector, selector must be at most 63 characters long");
+                    throw new BimiInvalidException($"Invalid local-part selector '{selector}', selector must be a valid DNS label");
                 }
             }
 
             return selectors;
+        }
+
+        /// <summary>
+        /// Checks whether a value is a valid DNS label
+        /// ASCII letters, digits or hyphens only, and must not start or end with a hyphen
+        /// </summary>
+        private static bool IsValidDnsLabel(string value)
+        {
+            return Regex.IsMatch(value, @"^[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?$");
         }
 
         private static AvatarPreference GetAvatarPreference(string value)
