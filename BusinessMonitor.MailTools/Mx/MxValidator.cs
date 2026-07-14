@@ -12,6 +12,11 @@ namespace BusinessMonitor.MailTools.Mx
 
         public MxValidator(IResolver resolver)
         {
+            if (resolver == null)
+            {
+                throw new ArgumentNullException(nameof(resolver));
+            }
+
             _resolver = resolver;
         }
 
@@ -40,9 +45,9 @@ namespace BusinessMonitor.MailTools.Mx
             foreach (var mxRecord in mxRecords)
             {
                 IPAddress[] ipAddresses = _resolver.GetAddressRecords(mxRecord);
-				if (ipAddresses != null && ipAddresses.Any(IsNonRoutable))
-				{
-					result.InvalidMxRecords.Add(mxRecord);
+                if (ipAddresses != null && ipAddresses.Any(IsNonRoutable))
+                {
+                    result.InvalidMxRecords.Add(mxRecord);
                 }
             }
 
