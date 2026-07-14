@@ -321,6 +321,7 @@ namespace BusinessMonitor.MailTools.Test
             });
         }
 
+#if INTEGRATION_TESTS
         [Test]
         public void TestLookups()
         {
@@ -346,5 +347,32 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(protonmail.Directives.First(x => x.Mechanism == SpfMechanism.Include).Include, Is.EqualTo("_spf.protonmail.ch"));
             Assert.That(protonmail.Directives.First(x => x.Mechanism == SpfMechanism.Include).Included, Is.Not.Null);
         }
+#endif
+
+        [TestCase("v=spf1 ip4:192.0.2.0/33 -all")]
+        [TestCase("v=spf1 ip4:192.0.2.0/-1 -all")]
+        [TestCase("v=spf1 ip4:192.0.2.0/999 -all")]
+        [TestCase("v=spf1 ip4:192.0.2.0/abc -all")]
+        [TestCase("v=spf1 ip4:192.0.2.0/+24 -all")]
+        [TestCase("v=spf1 ip4:192.0.2.0/ -all")]
+        [TestCase("v=spf1 ip6:2001:db8::/129 -all")]
+        [TestCase("v=spf1 ip4:not-an-ip -all")]
+        [TestCase("v=spf1 ip6:gggg:: -all")]
+        public void TestInvalidAddress(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestValidPrefixBounds()
+        {
+            Assert.DoesNotThrow(() => SpfCheck.ParseSpfRecord("v=spf1 ip4:192.0.2.0/0 -all"));
+            Assert.DoesNotThrow(() => SpfCheck.ParseSpfRecord("v=spf1 ip4:192.0.2.1/32 -all"));
+            Assert.DoesNotThrow(() => SpfCheck.ParseSpfRecord("v=spf1 ip6:2001:db8::1/128 -all"));
+        }
+
     }
 }

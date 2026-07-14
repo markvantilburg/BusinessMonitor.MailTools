@@ -1,5 +1,8 @@
-﻿using BusinessMonitor.MailTools.Util;
+﻿using BusinessMonitor.MailTools.Exceptions;
+using BusinessMonitor.MailTools.Util;
+using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 
 namespace BusinessMonitor.MailTools.Spf
 {
@@ -21,10 +24,36 @@ namespace BusinessMonitor.MailTools.Spf
             if (pos != -1)
             {
                 ip = value.Substring(0, pos);
-                length = int.Parse(value.Substring(pos + 1));
+                var prefix = value.Substring(pos + 1);
+
+                if (!int.TryParse(prefix, NumberStyles.None, CultureInfo.InvariantCulture, out var parsedLength))
+                {
+                    throw new SpfInvalidException($"Invalid CIDR prefix length '{prefix}' in '{value}'");
+                }
+
+                length = parsedLength;
             }
 
-            var address = IPAddress.Parse(ip);
+            IPAddress address;
+            try
+            {
+                address = IPAddress.Parse(ip);
+            }
+            catch (FormatException)
+            {
+                throw new SpfInvalidException($"Invalid IP address '{ip}' in '{value}'");
+            }
+
+            if (length != null)
+            {
+                var maxLength = address.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
+
+                if (length < 0 || length > maxLength)
+                {
+                    throw new SpfInvalidException($"CIDR prefix length must be between 0 and {maxLength}, got '{length}' in '{value}'");
+                }
+            }
+
             return new SpfAddress(address, length);
         }
 
