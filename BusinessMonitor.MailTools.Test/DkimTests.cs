@@ -2,6 +2,7 @@
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Test.Dns;
 using NUnit.Framework;
+using System.Linq;
 using System;
 
 namespace BusinessMonitor.MailTools.Test
@@ -118,5 +119,54 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(record, Is.Not.Null);
             Assert.That(record.PublicKey, Is.Empty);
         }
+    
+        // Selectors and domains that could alter the DNS query
+        [TestCase("business.nl", "sel ector")]
+        [TestCase("business.nl", "sel..ector")]
+        [TestCase("business.nl", ".selector")]
+        [TestCase("business.nl", "selector.")]
+        [TestCase("business.nl", "sel\u0000ector")]
+        [TestCase("business.nl", "sel/ector")]
+        [TestCase("business.nl", "-selector")]
+        [TestCase("business.nl", "")]
+        [TestCase("busi ness.nl", "default")]
+        [TestCase("business..nl", "default")]
+        [TestCase(".business.nl", "default")]
+        [TestCase("business.nl.", "default")]
+        public void TestInvalidQueryInput(string domain, string selector)
+        {
+            var check = new DkimCheck(new DummyResolver());
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                check.GetDkimRecord(domain, selector);
+            });
+        }
+
+        [Test]
+        public void TestMultiLabelSelector()
+        {
+            // Selectors are sub-domains and may contain multiple labels
+            var resolver = new DummyResolver("s1.s2._domainkey.business.nl", "v=DKIM1; p=");
+            var check = new DkimCheck(resolver);
+
+            Assert.DoesNotThrow(() =>
+            {
+                check.GetDkimRecord("business.nl", "s1.s2");
+            });
+        }
+
+        [Test]
+        public void TestCombinedNameTooLong()
+        {
+            var check = new DkimCheck(new DummyResolver());
+            var domain = string.Join(".", Enumerable.Repeat(new string('a', 60), 4)); // 243 chars, valid on its own
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                check.GetDkimRecord(domain, "selector");
+            });
+        }
+
     }
 }

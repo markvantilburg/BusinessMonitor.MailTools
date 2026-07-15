@@ -1,7 +1,6 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Util;
-using System.Text.RegularExpressions;
 
 namespace BusinessMonitor.MailTools.Bimi
 {
@@ -36,22 +35,16 @@ namespace BusinessMonitor.MailTools.Bimi
         /// <exception cref="BimiInvalidException">The BIMI record was invalid</exception>
         public BimiRecord GetBimiRecord(string domain, string selector = "default")
         {
-            if (domain == null)
-            {
-                throw new ArgumentNullException(nameof(domain));
-            }
-
-            if (selector == null)
-            {
-                throw new ArgumentNullException(nameof(selector));
-            }
-
-            if (domain.Length > 253)
-            {
-                throw new ArgumentException("Domain must not exceed 253 characters", nameof(domain));
-            }
+            DnsName.ValidateDomain(domain, nameof(domain));
+            DnsName.ValidateSelector(selector, nameof(selector));
 
             var name = selector + "._bimi." + domain;
+
+            if (name.Length > 253)
+            {
+                throw new ArgumentException("Selector and domain combined exceed the maximum DNS name length of 253 characters", nameof(selector));
+            }
+
             var records = _resolver.GetTextRecords(name);
 
             // Find the BIMI record
@@ -191,7 +184,7 @@ namespace BusinessMonitor.MailTools.Bimi
         /// </summary>
         private static bool IsValidDnsLabel(string value)
         {
-            return Regex.IsMatch(value, @"^[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?$");
+            return DnsName.IsValidLabel(value);
         }
 
         private static AvatarPreference GetAvatarPreference(string value)

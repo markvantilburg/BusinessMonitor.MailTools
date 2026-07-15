@@ -192,5 +192,21 @@ namespace BusinessMonitor.MailTools.Test
 
             Assert.That(spotify.Location, Is.Not.Empty); // Spotify has no evidence location
         }
+
+        [TestCase("business.nl", "sel ector")]
+        [TestCase("business.nl", "sel..ector")]
+        [TestCase("business.nl", "sel\u0000ector")]
+        [TestCase("business..nl", "default")]
+        [TestCase("busi ness.nl", "default")]
+        public void TestInvalidQueryInput(string domain, string selector)
+        {
+            var check = new BimiCheck(new DummyResolver());
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                check.GetBimiRecord(domain, selector);
+            });
+        }
+
     }
 }
