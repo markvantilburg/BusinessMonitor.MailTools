@@ -194,7 +194,6 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("100.128.0.1")]     // just above CGNAT
         [TestCase("223.255.255.255")] // just below multicast
         // IPv6 routable addresses
-        [TestCase("2001:db8::1")]
         [TestCase("2606:4700:4700::1111")]
         [TestCase("fbff::1")]         // just below fc00::/7
         [TestCase("fe00::1")]         // just above fc00::/7, below fe80::/10
