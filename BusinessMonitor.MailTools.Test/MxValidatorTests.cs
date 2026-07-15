@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using Moq;
 using System;
 using System.Net;
@@ -148,6 +148,20 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("239.255.255.255")] // multicast upper bound
         [TestCase("240.0.0.1")]       // reserved
         [TestCase("255.255.255.255")] // broadcast
+        // IPv4-mapped IPv6 must not bypass the IPv4 checks
+        [TestCase("::ffff:10.0.0.1")]
+        [TestCase("::ffff:192.168.1.1")]
+        [TestCase("::ffff:127.0.0.1")]
+        [TestCase("::ffff:172.16.0.1")]
+        [TestCase("::ffff:169.254.1.1")]
+        // Documentation / test / benchmarking ranges
+        [TestCase("192.0.0.1")]       // 192.0.0.0/24
+        [TestCase("192.0.2.1")]       // TEST-NET-1
+        [TestCase("198.51.100.1")]    // TEST-NET-2
+        [TestCase("203.0.113.1")]     // TEST-NET-3
+        [TestCase("198.18.0.1")]      // 198.18.0.0/15 lower bound
+        [TestCase("198.19.255.255")]  // 198.18.0.0/15 upper bound
+        [TestCase("2001:db8::1")]     // IPv6 documentation 2001:db8::/32
         // IPv6 non-routable ranges
         [TestCase("::")]              // unspecified
         [TestCase("::1")]             // loopback
@@ -184,6 +198,17 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("2606:4700:4700::1111")]
         [TestCase("fbff::1")]         // just below fc00::/7
         [TestCase("fe00::1")]         // just above fc00::/7, below fe80::/10
+        [TestCase("::ffff:1.1.1.1")]  // IPv4-mapped but routable
+        [TestCase("192.0.1.1")]       // just below TEST-NET-1
+        [TestCase("192.0.3.1")]       // just above TEST-NET-1
+        [TestCase("198.51.99.255")]   // just below TEST-NET-2
+        [TestCase("198.51.101.0")]    // just above TEST-NET-2
+        [TestCase("203.0.112.255")]   // just below TEST-NET-3
+        [TestCase("203.0.114.0")]     // just above TEST-NET-3
+        [TestCase("198.17.255.255")]  // just below benchmarking range
+        [TestCase("198.20.0.1")]      // just above benchmarking range
+        [TestCase("2001:db7:ffff::1")] // just below documentation range
+        [TestCase("2001:db9::1")]     // just above documentation range
         public void ValidateMxRecords_WithRoutableAddress_MarksRecordValid(string address)
         {
             var result = Validate(address);
