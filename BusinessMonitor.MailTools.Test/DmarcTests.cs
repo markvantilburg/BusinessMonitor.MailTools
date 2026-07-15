@@ -138,5 +138,33 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(google.AggregatedReportAddresses, Does.Contain("mailto:mailauth-reports@google.com"));
             Assert.That(outlook.AggregatedReportAddresses, Does.Contain("mailto:rua@dmarc.microsoft"));
         }
+
+        // Malformed numeric tags must throw DmarcInvalidException, not FormatException/OverflowException
+        [TestCase("v=DMARC1; p=none; pct=abc")]
+        [TestCase("v=DMARC1; p=none; pct=")]
+        [TestCase("v=DMARC1; p=none; pct=+50")]
+        [TestCase("v=DMARC1; p=none; pct=1O")]
+        [TestCase("v=DMARC1; p=none; pct=99999999999999999999")]
+        [TestCase("v=DMARC1; p=none; ri=abc")]
+        [TestCase("v=DMARC1; p=none; ri=-1")]
+        [TestCase("v=DMARC1; p=none; ri=+86400")]
+        [TestCase("v=DMARC1; p=none; ri=99999999999999999999")]
+        public void TestInvalidNumericTags(string value)
+        {
+            Assert.Throws<DmarcInvalidException>(() =>
+            {
+                DmarcCheck.ParseDmarcRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestValidNumericTags()
+        {
+            var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; p=none; pct=50; ri=86400");
+
+            Assert.That(record.PercentageTag, Is.EqualTo(50));
+            Assert.That(record.ReportInterval, Is.EqualTo(86400));
+        }
+
     }
 }
