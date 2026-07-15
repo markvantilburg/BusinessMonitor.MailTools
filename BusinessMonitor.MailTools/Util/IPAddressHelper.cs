@@ -21,8 +21,11 @@ namespace BusinessMonitor.MailTools.Util
             }
 
             var mask = GetMask(network.AddressFamily, out var bytes);
-            var start = ToBigInteger(network.GetAddressBytes());
-            var end = start + ~(mask << (bytes * 8 - length));
+            var hostMask = ~(mask << (bytes * 8 - length));
+
+            // Zero the host bits so an unaligned base like 192.168.0.1/24 behaves as 192.168.0.0/24
+            var start = ToBigInteger(network.GetAddressBytes()) & ~hostMask;
+            var end = start + hostMask;
 
             var addressBytes = ToBigInteger(address.GetAddressBytes());
 
