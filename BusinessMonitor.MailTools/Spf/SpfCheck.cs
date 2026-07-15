@@ -6,334 +6,336 @@ using System.Text.RegularExpressions;
 
 namespace BusinessMonitor.MailTools.Spf
 {
-	/// <summary>
-	/// Parses, checks and lookups SPF (Sender Policy Framework) records on domain names
-	/// </summary>
-	public class SpfCheck
-	{
-		/// <summary>
-		/// The number of lookups the resolver can make
-		/// </summary>
-		private const int MaxLookups = 10;
+    /// <summary>
+    /// Parses, checks and lookups SPF (Sender Policy Framework) records on domain names
+    /// </summary>
+    public class SpfCheck
+    {
+        private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(200);
 
-		/// <summary>
-		/// The valid mechanisms
-		/// </summary>
-		private static readonly string[] Mechanisms = new[] { "a", "mx", "ptr", "ip4", "ip6", "exists", "all", "include" };
+        /// <summary>
+        /// The number of lookups the resolver can make
+        /// </summary>
+        private const int MaxLookups = 10;
 
-		/// <summary>
-		/// The valid qualifiers
-		/// </summary>
-		private static readonly string[] Qualifiers = new[] { "+", "-", "~", "?" };
+        /// <summary>
+        /// The valid mechanisms
+        /// </summary>
+        private static readonly string[] Mechanisms = new[] { "a", "mx", "ptr", "ip4", "ip6", "exists", "all", "include" };
 
-		private readonly IResolver _resolver;
-		private int _lookups;
+        /// <summary>
+        /// The valid qualifiers
+        /// </summary>
+        private static readonly string[] Qualifiers = new[] { "+", "-", "~", "?" };
 
-		/// <summary>
-		/// Initializes a new SPF check instance with the provided DNS resolver
-		/// </summary>
-		/// <param name="resolver">The DNS resolver to use</param>
-		public SpfCheck(IResolver resolver)
-		{
-			if (resolver == null)
-			{
-				throw new ArgumentNullException(nameof(resolver));
-			}
+        private readonly IResolver _resolver;
+        private int _lookups;
 
-			_resolver = resolver;
-			_lookups = 0;
-		}
+        /// <summary>
+        /// Initializes a new SPF check instance with the provided DNS resolver
+        /// </summary>
+        /// <param name="resolver">The DNS resolver to use</param>
+        public SpfCheck(IResolver resolver)
+        {
+            if (resolver == null)
+            {
+                throw new ArgumentNullException(nameof(resolver));
+            }
 
-		/// <summary>
-		/// Gets a SPF record from a domain
-		/// </summary>
-		/// <param name="domain">The domain</param>
-		/// <returns>The parsed SPF record</returns>
-		/// <exception cref="SpfNotFoundException">No SPF record was found for the domain</exception>
-		/// <exception cref="SpfInvalidException">The SPF record was invalid</exception>
-		/// <exception cref="SpfLookupException">An include lookup failed, see inner exception</exception>
-		public SpfRecord GetSpfRecord(string domain)
-		{
-			if (domain == null)
-			{
-				throw new ArgumentNullException(nameof(domain));
-			}
+            _resolver = resolver;
+            _lookups = 0;
+        }
 
-			if (domain.Length > 253)
-			{
-				throw new ArgumentException("Domain must not exceed 253 characters", nameof(domain));
-			}
+        /// <summary>
+        /// Gets a SPF record from a domain
+        /// </summary>
+        /// <param name="domain">The domain</param>
+        /// <returns>The parsed SPF record</returns>
+        /// <exception cref="SpfNotFoundException">No SPF record was found for the domain</exception>
+        /// <exception cref="SpfInvalidException">The SPF record was invalid</exception>
+        /// <exception cref="SpfLookupException">An include lookup failed, see inner exception</exception>
+        public SpfRecord GetSpfRecord(string domain)
+        {
+            if (domain == null)
+            {
+                throw new ArgumentNullException(nameof(domain));
+            }
 
-			_lookups = 0;
+            if (domain.Length > 253)
+            {
+                throw new ArgumentException("Domain must not exceed 253 characters", nameof(domain));
+            }
 
-			return GetRecord(domain);
-		}
+            _lookups = 0;
 
-		private SpfRecord GetRecord(string domain)
-		{
-			var records = _resolver.GetTextRecords(domain);
+            return GetRecord(domain);
+        }
 
-			// Find the SPF record
-			var record = records.FirstOrDefault(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase));
+        private SpfRecord GetRecord(string domain)
+        {
+            var records = _resolver.GetTextRecords(domain);
 
-			if (record == default)
-			{
-				throw new SpfNotFoundException("No SPF record found on domain");
-			}
+            // Find the SPF record
+            var record = records.FirstOrDefault(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase));
 
-			if (records.Count(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase)) > 1)
-			{
-				throw new SpfInvalidException("Too many SPF records found on domain");
-			}
+            if (record == default)
+            {
+                throw new SpfNotFoundException("No SPF record found on domain");
+            }
 
-			// Parse and validate the record and return it
-			var parsed = ParseSpfRecord(record);
+            if (records.Count(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase)) > 1)
+            {
+                throw new SpfInvalidException("Too many SPF records found on domain");
+            }
 
-			foreach (var directive in parsed.Directives)
-			{
-				if (directive.Mechanism == SpfMechanism.Include && directive.Include != null)
-				{
-					_lookups++;
+            // Parse and validate the record and return it
+            var parsed = ParseSpfRecord(record);
 
-					if (_lookups > MaxLookups)
-					{
-						throw new SpfLookupException("SPF record exceeds max lookups of 10");
-					}
+            foreach (var directive in parsed.Directives)
+            {
+                if (directive.Mechanism == SpfMechanism.Include && directive.Include != null)
+                {
+                    _lookups++;
 
-					try
-					{
-						var included = GetRecord(directive.Include);
+                    if (_lookups > MaxLookups)
+                    {
+                        throw new SpfLookupException("SPF record exceeds max lookups of 10");
+                    }
 
-						directive.Included = included;
-					}
-					catch (SpfException ex) when (ex is not SpfLookupException)
-					{
-						throw new SpfLookupException($"SPF include lookup failed for '{directive.Include}', see inner exception", ex);
-					}
-				}
+                    try
+                    {
+                        var included = GetRecord(directive.Include);
 
-				if (directive.Mechanism == SpfMechanism.A || directive.Mechanism == SpfMechanism.MX)
-				{
-					_lookups++;
+                        directive.Included = included;
+                    }
+                    catch (SpfException ex) when (ex is not SpfLookupException)
+                    {
+                        throw new SpfLookupException($"SPF include lookup failed for '{directive.Include}', see inner exception", ex);
+                    }
+                }
 
-					if (_lookups > MaxLookups)
-					{
-						throw new SpfLookupException("SPF record exceeds max lookups of 10");
-					}
+                if (directive.Mechanism == SpfMechanism.A || directive.Mechanism == SpfMechanism.MX)
+                {
+                    _lookups++;
 
-					if (string.IsNullOrEmpty(directive.Domain))
-					{
-						directive.Domain = domain;
-					}
+                    if (_lookups > MaxLookups)
+                    {
+                        throw new SpfLookupException("SPF record exceeds max lookups of 10");
+                    }
 
-					directive.Addresses = ResolveDirective(directive);
-				}
-			}
+                    if (string.IsNullOrEmpty(directive.Domain))
+                    {
+                        directive.Domain = domain;
+                    }
 
-			return parsed;
-		}
+                    directive.Addresses = ResolveDirective(directive);
+                }
+            }
 
-		/// <summary>
-		/// Parses and validates a SPF record and return the record
-		/// </summary>
-		/// <param name="value">The record content</param>
-		/// <returns>The parsed SPF record</returns>
-		/// <exception cref="SpfInvalidException">The SPF record was invalid</exception>
-		public static SpfRecord ParseSpfRecord(string value)
-		{
-			// HashSet to track seen IP addresses
-			HashSet<SpfAddress> seenIpAddresses = new HashSet<SpfAddress>();
+            return parsed;
+        }
 
-			if (value == null)
-			{
-				throw new ArgumentNullException(nameof(value));
-			}
+        /// <summary>
+        /// Parses and validates a SPF record and return the record
+        /// </summary>
+        /// <param name="value">The record content</param>
+        /// <returns>The parsed SPF record</returns>
+        /// <exception cref="SpfInvalidException">The SPF record was invalid</exception>
+        public static SpfRecord ParseSpfRecord(string value)
+        {
+            // HashSet to track seen IP addresses
+            HashSet<SpfAddress> seenIpAddresses = new HashSet<SpfAddress>();
 
-			// Check if the record starts with SPF version 1
-			if (!value.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase))
-			{
-				throw new SpfInvalidException("Not a valid SPF record, does not contain a version");
-			}
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
 
-			// Split the terms
-			var split = value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Skip(1);
+            // Check if the record starts with SPF version 1
+            if (!value.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SpfInvalidException("Not a valid SPF record, does not contain a version");
+            }
 
-			var directives = new List<SpfDirective>();
-			var modifiers = new List<SpfModifier>();
+            // Split the terms
+            var split = value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Skip(1);
 
-			foreach (var term in split)
-			{
-				var index = term.IndexOf('=');
+            var directives = new List<SpfDirective>();
+            var modifiers = new List<SpfModifier>();
 
-				// Check if term is a modifier
-				if (index != -1)
-				{
-					var modifier = ParseModifier(term);
+            foreach (var term in split)
+            {
+                var index = term.IndexOf('=');
 
-					modifiers.Add(modifier);
-				}
-				else
-				{
-					var directive = ParseDirective(term, seenIpAddresses);
+                // Check if term is a modifier
+                if (index != -1)
+                {
+                    var modifier = ParseModifier(term);
 
-					directives.Add(directive);
-				}
-			}
+                    modifiers.Add(modifier);
+                }
+                else
+                {
+                    var directive = ParseDirective(term, seenIpAddresses);
 
-			return new SpfRecord(directives, modifiers);
-		}
+                    directives.Add(directive);
+                }
+            }
 
-		/// <summary>
-		/// Parses a SPF directive
-		/// </summary>
-		/// <param name="term">The term to parse</param>
-		/// <returns>The parsed directive</returns>
-		private static SpfDirective ParseDirective(string term, HashSet<SpfAddress> seenIpAddresses)
-		{
-			// Extract the qualifier if any
-			var qualifier = term.Substring(0, 1);
+            return new SpfRecord(directives, modifiers);
+        }
 
-			if (Qualifiers.Contains(qualifier))
-			{
-				term = term.Substring(1);
-			}
-			else
-			{
-				qualifier = "+";
-			}
+        /// <summary>
+        /// Parses a SPF directive
+        /// </summary>
+        /// <param name="term">The term to parse</param>
+        /// <returns>The parsed directive</returns>
+        private static SpfDirective ParseDirective(string term, HashSet<SpfAddress> seenIpAddresses)
+        {
+            // Extract the qualifier if any
+            var qualifier = term.Substring(0, 1);
 
-			// Extract the value if any
-			var index = term.IndexOf(':');
+            if (Qualifiers.Contains(qualifier))
+            {
+                term = term.Substring(1);
+            }
+            else
+            {
+                qualifier = "+";
+            }
 
-			var mechanism = term;
-			var value = string.Empty;
+            // Extract the value if any
+            var index = term.IndexOf(':');
 
-			if (index != -1)
-			{
-				value = term.Substring(index + 1);
-				mechanism = term.Substring(0, index);
-			}
+            var mechanism = term;
+            var value = string.Empty;
 
-			return ParseDirective(qualifier, mechanism, value, seenIpAddresses);
-		}
+            if (index != -1)
+            {
+                value = term.Substring(index + 1);
+                mechanism = term.Substring(0, index);
+            }
 
-		/// <summary>
-		/// Parses a SPF directive
-		/// </summary>
-		/// <param name="qualifier">The qualifier</param>
-		/// <param name="mechanism">The mechanism</param>
-		/// <param name="value">The mechanism value</param>
-		/// <returns>The parsed directive</returns>
-		private static SpfDirective ParseDirective(string qualifier, string mechanism, string value, HashSet<SpfAddress> seenIpAddresses)
-		{
-			if (!Mechanisms.Contains(mechanism.ToLower()))
-			{
-				throw new SpfInvalidException($"Not a valid SPF record, '{mechanism}' is not a valid mechanism");
-			}
+            return ParseDirective(qualifier, mechanism, value, seenIpAddresses);
+        }
 
-			// Convert the qualifier and mechanism to matching types
-			var qual = (SpfQualifier)Array.IndexOf(Qualifiers, qualifier);
-			var mech = (SpfMechanism)Enum.Parse(typeof(SpfMechanism), mechanism, true);
+        /// <summary>
+        /// Parses a SPF directive
+        /// </summary>
+        /// <param name="qualifier">The qualifier</param>
+        /// <param name="mechanism">The mechanism</param>
+        /// <param name="value">The mechanism value</param>
+        /// <returns>The parsed directive</returns>
+        private static SpfDirective ParseDirective(string qualifier, string mechanism, string value, HashSet<SpfAddress> seenIpAddresses)
+        {
+            if (!Mechanisms.Contains(mechanism.ToLower()))
+            {
+                throw new SpfInvalidException($"Not a valid SPF record, '{mechanism}' is not a valid mechanism");
+            }
 
-			var directive = new SpfDirective(qual, mech);
+            // Convert the qualifier and mechanism to matching types
+            var qual = (SpfQualifier)Array.IndexOf(Qualifiers, qualifier);
+            var mech = (SpfMechanism)Enum.Parse(typeof(SpfMechanism), mechanism, true);
 
-			// Process the mechanism
-			switch (directive.Mechanism)
-			{
-				case SpfMechanism.Include:
-					directive.Include = value;
+            var directive = new SpfDirective(qual, mech);
 
-					// do a sanity check on the domain name to make sure its legal
-					if (value.Length > 253 || !Regex.IsMatch(value, @"^[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?(\.[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?)+$"))
-					{
-						// and individual labels can't be bigger than 63 chars
-						throw new SpfInvalidException($"Include must be a domain name. The include value '{value}' fails");
-					}
+            // Process the mechanism
+            switch (directive.Mechanism)
+            {
+                case SpfMechanism.Include:
+                    directive.Include = value;
 
-					break;
+                    // do a sanity check on the domain name to make sure its legal
+                    if (value.Length > 253 || !Regex.IsMatch(value, @"^[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?(\.[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?)+$", RegexOptions.None, RegexTimeout))
+                    {
+                        // and individual labels can't be bigger than 63 chars
+                        throw new SpfInvalidException($"Include must be a domain name. The include value '{value}' fails");
+                    }
 
-				case SpfMechanism.IP4:
-					var address4 = SpfAddress.Parse(value, AddressFamily.InterNetwork);
-					// Check if the IP4 has already been seen
-					if (seenIpAddresses.Contains(address4))
-					{
-						throw new SpfInvalidException($"Duplicate IP4 mechanism detected: {address4}");
-					}
+                    break;
 
-					// Add the IP address to the list
-					seenIpAddresses.Add(address4);
-					directive.IP4 = address4;
+                case SpfMechanism.IP4:
+                    var address4 = SpfAddress.Parse(value, AddressFamily.InterNetwork);
+                    // Check if the IP4 has already been seen
+                    if (seenIpAddresses.Contains(address4))
+                    {
+                        throw new SpfInvalidException($"Duplicate IP4 mechanism detected: {address4}");
+                    }
 
-					break;
+                    // Add the IP address to the list
+                    seenIpAddresses.Add(address4);
+                    directive.IP4 = address4;
 
-				case SpfMechanism.IP6:
-					var address6 = SpfAddress.Parse(value, AddressFamily.InterNetworkV6);
-					// Check if the IP6 has already been seen
-					if (seenIpAddresses.Contains(address6))
-					{
-						throw new SpfInvalidException($"Duplicate IP6 mechanism detected: {address6}");
-					}
+                    break;
 
-					// Add the IP address to the list
-					seenIpAddresses.Add(address6);
-					directive.IP6 = address6;
+                case SpfMechanism.IP6:
+                    var address6 = SpfAddress.Parse(value, AddressFamily.InterNetworkV6);
+                    // Check if the IP6 has already been seen
+                    if (seenIpAddresses.Contains(address6))
+                    {
+                        throw new SpfInvalidException($"Duplicate IP6 mechanism detected: {address6}");
+                    }
 
-					break;
+                    // Add the IP address to the list
+                    seenIpAddresses.Add(address6);
+                    directive.IP6 = address6;
 
-				case SpfMechanism.A:
-				case SpfMechanism.MX:
-					directive.Domain = value;
+                    break;
 
-					break;
-			}
+                case SpfMechanism.A:
+                case SpfMechanism.MX:
+                    directive.Domain = value;
 
-			return directive;
-		}
+                    break;
+            }
 
-		/// <summary>
-		/// Parse a SPF modifier
-		/// </summary>
-		/// <param name="term">The term to parse</param>
-		/// <returns>The parsed modifier</returns>
-		private static SpfModifier ParseModifier(string term)
-		{
-			var index = term.IndexOf("=");
+            return directive;
+        }
 
-			var name = term.Substring(0, index);
-			var value = term.Substring(index + 1);
+        /// <summary>
+        /// Parse a SPF modifier
+        /// </summary>
+        /// <param name="term">The term to parse</param>
+        /// <returns>The parsed modifier</returns>
+        private static SpfModifier ParseModifier(string term)
+        {
+            var index = term.IndexOf("=");
 
-			return new SpfModifier(name, value);
-		}
+            var name = term.Substring(0, index);
+            var value = term.Substring(index + 1);
 
-		private IPAddress[] ResolveDirective(SpfDirective directive)
-		{
-			// If a mechanism lookup the addresses and return
-			if (directive.Mechanism == SpfMechanism.A)
-			{
-				var ARecords = _resolver.GetAddressRecords(directive.Domain);
-				if (ARecords.Length < 1)
-				{
-					throw new SpfInvalidException(string.Format("A ({0}) does not resolve", directive.Domain));
-				}
+            return new SpfModifier(name, value);
+        }
 
-				return ARecords;
-			}
+        private IPAddress[] ResolveDirective(SpfDirective directive)
+        {
+            // If a mechanism lookup the addresses and return
+            if (directive.Mechanism == SpfMechanism.A)
+            {
+                var ARecords = _resolver.GetAddressRecords(directive.Domain);
+                if (ARecords.Length < 1)
+                {
+                    throw new SpfInvalidException(string.Format("A ({0}) does not resolve", directive.Domain));
+                }
 
-			// Lookup all MX records and do a lookup on those
-			var records = _resolver.GetMailRecords(directive.Domain);
+                return ARecords;
+            }
 
-			if (records.Length > 10)
-			{
-				throw new SpfException("MX mechanism exceeds max MX records of 10");
-			}
+            // Lookup all MX records and do a lookup on those
+            var records = _resolver.GetMailRecords(directive.Domain);
 
-			var addresses = new List<IPAddress>();
-			foreach (var record in records)
-			{
-				addresses.AddRange(_resolver.GetAddressRecords(record));
-			}
+            if (records.Length > 10)
+            {
+                throw new SpfException("MX mechanism exceeds max MX records of 10");
+            }
 
-			return addresses.ToArray();
-		}
-	}
+            var addresses = new List<IPAddress>();
+            foreach (var record in records)
+            {
+                addresses.AddRange(_resolver.GetAddressRecords(record));
+            }
+
+            return addresses.ToArray();
+        }
+    }
 }
