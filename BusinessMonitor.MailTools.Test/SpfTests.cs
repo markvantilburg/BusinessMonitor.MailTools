@@ -374,5 +374,22 @@ namespace BusinessMonitor.MailTools.Test
             Assert.DoesNotThrow(() => SpfCheck.ParseSpfRecord("v=spf1 ip6:2001:db8::1/128 -all"));
         }
 
+
+        [TestCase("v=spf1 ip4:::1 -all")]                    // IPv6 in ip4
+        [TestCase("v=spf1 ip4:2001:db8::1 -all")]
+        [TestCase("v=spf1 ip4:2001:db8::/32 -all")]
+        [TestCase("v=spf1 ip6:1.2.3.4 -all")]                // IPv4 in ip6
+        [TestCase("v=spf1 ip6:192.0.2.0/24 -all")]
+        [TestCase("v=spf1 ip4:1.2.3 -all")]                  // legacy shorthand, .NET parses as 1.2.0.3
+        [TestCase("v=spf1 ip4:1.2 -all")]
+        [TestCase("v=spf1 ip4:16909060 -all")]               // integer form of 1.2.3.4
+        public void TestAddressFamilyMismatch(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
     }
 }

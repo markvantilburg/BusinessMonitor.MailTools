@@ -14,7 +14,7 @@ namespace BusinessMonitor.MailTools.Spf
             Length = length;
         }
 
-        internal static SpfAddress Parse(string value)
+        internal static SpfAddress Parse(string value, AddressFamily expectedFamily)
         {
             var pos = value.IndexOf('/');
 
@@ -44,9 +44,22 @@ namespace BusinessMonitor.MailTools.Spf
                 throw new SpfInvalidException($"Invalid IP address '{ip}' in '{value}'");
             }
 
+            if (address.AddressFamily != expectedFamily)
+            {
+                var mechanism = expectedFamily == AddressFamily.InterNetwork ? "ip4" : "ip6";
+
+                throw new SpfInvalidException($"Address '{ip}' does not match the {mechanism} mechanism in '{value}'");
+            }
+
+            // Reject legacy shorthand such as "1.2.3" which .NET parses as 1.2.0.3, an SPF ip4 must be a full dotted quad
+            if (expectedFamily == AddressFamily.InterNetwork && ip.Split('.').Length != 4)
+            {
+                throw new SpfInvalidException($"IPv4 address must be a full dotted quad, got '{ip}' in '{value}'");
+            }
+
             if (length != null)
             {
-                var maxLength = address.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
+                var maxLength = expectedFamily == AddressFamily.InterNetwork ? 32 : 128;
 
                 if (length < 0 || length > maxLength)
                 {

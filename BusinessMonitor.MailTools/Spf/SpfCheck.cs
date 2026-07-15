@@ -1,6 +1,7 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
 namespace BusinessMonitor.MailTools.Spf
@@ -252,7 +253,7 @@ namespace BusinessMonitor.MailTools.Spf
 					break;
 
 				case SpfMechanism.IP4:
-					var address4 = SpfAddress.Parse(value);
+					var address4 = SpfAddress.Parse(value, AddressFamily.InterNetwork);
 					// Check if the IP4 has already been seen
 					if (seenIpAddresses.Contains(address4))
 					{
@@ -266,7 +267,7 @@ namespace BusinessMonitor.MailTools.Spf
 					break;
 
 				case SpfMechanism.IP6:
-					var address6 = SpfAddress.Parse(value);
+					var address6 = SpfAddress.Parse(value, AddressFamily.InterNetworkV6);
 					// Check if the IP6 has already been seen
 					if (seenIpAddresses.Contains(address6))
 					{
