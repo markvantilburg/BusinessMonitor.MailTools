@@ -44,5 +44,11 @@
         /// Gets the record flags
         /// </summary>
         public DkimFlags Flags { get; internal set; }
+
+        /// <summary>
+        /// Gets whether this DKIM key is revoked or disabled (empty public key)
+        /// </summary>
+        public bool IsRevoked { get; internal set; }
+
     }
 }

@@ -119,7 +119,7 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(record, Is.Not.Null);
             Assert.That(record.PublicKey, Is.Empty);
         }
-    
+
         // Selectors and domains that could alter the DNS query
         [TestCase("business.nl", "sel ector")]
         [TestCase("business.nl", "sel..ector")]
@@ -166,6 +166,41 @@ namespace BusinessMonitor.MailTools.Test
             {
                 check.GetDkimRecord(domain, "selector");
             });
+        }
+
+        [Test]
+        [TestCase("v=DKIM1; p=")]           // Revoked key - empty (should pass)
+        [TestCase("v=DKIM1; p=aaa")]        // Invalid - incomplete base64
+        [TestCase("v=DKIM1; p=!!!")]        // Invalid - non-base64 characters
+        [TestCase("v=DKIM1; p=AA")]         // Invalid - too short (% 4 != 0)
+        public void TestBase64Validation(string value)
+        {
+            if (value.EndsWith("p="))
+            {
+                // Revoked key - should parse successfully
+                var record = DkimCheck.ParseDkimRecord(value);
+                Assert.That(record, Is.Not.Null);
+                Assert.That(record.IsRevoked, Is.True);
+            }
+            else
+            {
+                // Invalid keys should throw
+                Assert.Throws<DkimInvalidException>(() =>
+                {
+                    DkimCheck.ParseDkimRecord(value);
+                });
+            }
+        }
+
+        [Test]
+        public void TestValidBase64Keys()
+        {
+            // Valid public key
+            var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCuSDS3a/QcWYbKrc/zM8KguDIeb4FQtRQFUTGLbx8FeYfFQ3+tsgU3p0FQCtrR8VfzlHkqU7381A4SMNwXzBW4vB1U0GhimPM6HxcHDdZCjXXqmCHqXoIchHs07lncb1JU83V5HG9g2n8ocWqq+9Hr0KfeG6vgLUSGm5uSXQeDCwIDAQAB");
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.IsRevoked, Is.False);
+            Assert.That(record.PublicKey, Is.EqualTo("MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCuSDS3a/QcWYbKrc/zM8KguDIeb4FQtRQFUTGLbx8FeYfFQ3+tsgU3p0FQCtrR8VfzlHkqU7381A4SMNwXzBW4vB1U0GhimPM6HxcHDdZCjXXqmCHqXoIchHs07lncb1JU83V5HG9g2n8ocWqq+9Hr0KfeG6vgLUSGm5uSXQeDCwIDAQAB"));
         }
 
     }

@@ -110,8 +110,16 @@ namespace BusinessMonitor.MailTools.Dkim
 
                     // Public key data
                     case "p":
-                        ValidateBase64(val);
-                        record.PublicKey = val;
+                        if (string.IsNullOrWhiteSpace(val))
+                        {
+                            record.IsRevoked = true;
+                            record.PublicKey = "";
+                        }
+                        else
+                        {
+                            ValidateBase64(val);
+                            record.PublicKey = val;
+                        }
 
                         break;
 
