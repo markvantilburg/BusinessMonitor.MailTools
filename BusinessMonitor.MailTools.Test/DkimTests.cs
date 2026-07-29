@@ -220,5 +220,37 @@ namespace BusinessMonitor.MailTools.Test
             }, "Should reject multiple DKIM records for the same selector");
         }
 
+        [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==", "rsa")]                    // Absent, defaults to rsa
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=", "rsa")]                // Empty, defaults to rsa
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=rsa", "rsa")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519", "ed25519")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k= rsa ", "rsa")]           // Surrounding whitespace
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519;K=rsa", "ed25519")] // k is case sensitive
+        public void TestKeyType(string value, string expected)
+        {
+            var record = DkimCheck.ParseDkimRecord(value);
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.KeyType, Is.EqualTo(expected));
+        }
+
+        [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=RSA")] // Case sensitive
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=Ed25519")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=r sa")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=dsa")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed448")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=rsa2048")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ED25519;K=rsa")] // k is case sensitive
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; K=ed25519;k=aap")] // k is case sensitive
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519;k=rsa")] // k is case sensitive
+        public void TestInvalidKeyType(string value)
+        {
+            Assert.Throws<DkimInvalidException>(() =>
+            {
+                DkimCheck.ParseDkimRecord(value);
+            });
+        }
     }
 }

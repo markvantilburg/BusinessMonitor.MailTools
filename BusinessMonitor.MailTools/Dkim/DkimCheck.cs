@@ -88,6 +88,8 @@ namespace BusinessMonitor.MailTools.Dkim
             var tags = value.Split(';').Skip(1);
             var record = new DkimRecord();
 
+            var seen = new HashSet<string>(StringComparer.Ordinal) { "v" };
+
             foreach (var t in tags)
             {
                 var i = t.IndexOf('=');
@@ -95,6 +97,11 @@ namespace BusinessMonitor.MailTools.Dkim
 
                 var tag = t.Substring(0, i).Trim();
                 var val = t.Substring(i + 1).Trim();
+
+                if (!seen.Add(tag))
+                {
+                    throw new DkimInvalidException($"DKIM record contains duplicate tag '{tag}'");
+                }
 
                 // Process the tag
                 switch (tag)
@@ -106,7 +113,13 @@ namespace BusinessMonitor.MailTools.Dkim
 
                     // Key type
                     case "k":
-                        record.KeyType = val;
+                        record.KeyType = val switch
+                        {
+                            null or "" => "rsa",
+                            "ed25519" => "ed25519",
+                            "rsa" => "rsa",
+                            _ => throw new DkimInvalidException("DKIM record invalid key type only rsa or ed25519 supported")
+                        };
                         break;
 
                     // Notes
