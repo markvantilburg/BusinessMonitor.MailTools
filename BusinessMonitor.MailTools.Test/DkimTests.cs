@@ -203,5 +203,22 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(record.PublicKey, Is.EqualTo("MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCuSDS3a/QcWYbKrc/zM8KguDIeb4FQtRQFUTGLbx8FeYfFQ3+tsgU3p0FQCtrR8VfzlHkqU7381A4SMNwXzBW4vB1U0GhimPM6HxcHDdZCjXXqmCHqXoIchHs07lncb1JU83V5HG9g2n8ocWqq+9Hr0KfeG6vgLUSGm5uSXQeDCwIDAQAB"));
         }
 
+        [Test]
+        public void TestMultipleDkimRecords()
+        {
+            // Multiple DKIM records for the same selector is invalid
+            var resolver = new DummyResolver("test._domainkey.example.com", new string[] { "v=DKIM1; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCuSDS3a/QcWYbKrc/zM8KguDIeb4FQtRQFUTGLbx8FeYfFQ3+tsgU3p0FQCtrR8VfzlHkqU7381A4SMNwXzBW4vB1U0GhimPM6HxcHDdZCjXXqmCHqXoIchHs07lncb1JU83V5HG9g2n8ocWqq+9Hr0KfeG6vgLUSGm5uSXQeDCwIDAQAB"
+                , "v=DKIM1; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCuSDS3a/QcWYbKrc/zM8KguDIeb4FQtRQFUTGLbx8FeYfFQ3+tsgU3p0FQCtrR8VfzlHkqU7381A4SMNwXzBW4vB1U0GhimPM6HxcHDdZCjXXqmCHqXoIchHs07lncb1JU83V5HG9g2n8ocWqq+9Hr0KfeG6vgLUSGm5uSXQeDCwIDAQAB"
+                , "v=DKIM1; p="
+            });
+
+            var check = new DkimCheck(resolver);
+
+            Assert.Throws<DkimInvalidException>(() =>
+            {
+                check.GetDkimRecord("example.com", "test");
+            }, "Should reject multiple DKIM records for the same selector");
+        }
+
     }
 }

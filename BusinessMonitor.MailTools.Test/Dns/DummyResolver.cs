@@ -20,6 +20,14 @@ namespace BusinessMonitor.MailTools.Test.Dns
             AddText(domain, value);
         }
 
+        public DummyResolver(string domain, string[] value) : this()
+        {
+            foreach (string x in value)
+            {
+                AddText(domain, x);
+            }
+        }
+
         public DummyResolver(string domain, IPAddress address) : this()
         {
             AddAddress(domain, address);

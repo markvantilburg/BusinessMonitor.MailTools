@@ -48,15 +48,21 @@ namespace BusinessMonitor.MailTools.Dkim
             var records = _resolver.GetTextRecords(name);
 
             // Find the DKIM record
-            var record = records.FirstOrDefault(x => x.StartsWith("v=DKIM1"));
+            //var record = records.FirstOrDefault(x => x.StartsWith("v=DKIM1"));
+            var dkimRecords = records.Where(x => x.StartsWith("v=DKIM1")).ToList();
 
-            if (record == default)
+            if (dkimRecords.Count == 0)
             {
                 throw new DkimNotFoundException($"No DKIM record found for selector '{selector}' on domain");
             }
 
+            if (dkimRecords.Count > 1)
+            {
+                throw new DkimInvalidException($"Multiple DKIM records found for selector '{selector}' on domain. RFC 6376 requires exactly one DKIM record per selector.");
+            }
+
             // Parse and validate the record and return it
-            return ParseDkimRecord(record);
+            return ParseDkimRecord(dkimRecords[0]);
         }
 
         /// <summary>
