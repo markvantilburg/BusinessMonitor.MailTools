@@ -3,6 +3,7 @@
 ## vNext
 - [SPF] Detect duplicate IP4/IP6 mechanisms in SPF records [Issue:#13](https://github.com/markvantilburg/BusinessMonitor.MailTools/issues/13)
 - [MX] Improve the localhost/non routable IP addresses detection [Issue:#7](https://github.com/markvantilburg/BusinessMonitor.MailTools/issues/7)
+- [DKIM] Validate all fields
 - Overall, apply additional hardening to the methods to protect against a potentially malicious DNS server.
 
 ## v1.0.10
