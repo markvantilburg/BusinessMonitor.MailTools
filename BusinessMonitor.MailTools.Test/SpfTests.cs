@@ -107,6 +107,46 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        [TestCase("v=spf1")]                            // Version only
+        [TestCase("V=SPF1 -all")]                       // Version is case insensitive
+        public void TestVersion(string value)
+        {
+            Assert.DoesNotThrow(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
+        [Test]
+        [TestCase("v=spf1x ip4:192.0.2.1 -all")]        // Version must be the complete first term
+        [TestCase("v=spf10 -all")]
+        [TestCase("v=spf1-all")]
+        [TestCase(" v=spf1 -all")]                      // Record must start with the version
+        public void TestInvalidVersion(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestLookupIgnoresLookalikeRecords()
+        {
+            // A record that does not begin with exactly v=spf1 is not a SPF record (RFC 7208 section 4.5)
+            var resolver = new DummyResolver();
+            resolver.AddText("businessmonitor.nl", "v=spf1x something");
+            resolver.AddText("businessmonitor.nl", "v=spf1 ip4:192.0.2.1 -all");
+
+            var check = new SpfCheck(resolver);
+
+            Assert.DoesNotThrow(() =>
+            {
+                check.GetSpfRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
         [TestCase("")]
         [TestCase("v=spf1 -boop")]
         [TestCase("v=spf1 boop:boop")]

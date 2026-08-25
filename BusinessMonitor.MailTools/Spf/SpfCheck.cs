@@ -76,14 +76,14 @@ namespace BusinessMonitor.MailTools.Spf
             var records = _resolver.GetTextRecords(domain);
 
             // Find the SPF record
-            var record = records.FirstOrDefault(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase));
+            var record = records.FirstOrDefault(IsSpfRecord);
 
             if (record == default)
             {
                 throw new SpfNotFoundException("No SPF record found on domain");
             }
 
-            if (records.Count(x => x.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase)) > 1)
+            if (records.Count(IsSpfRecord) > 1)
             {
                 throw new SpfInvalidException("Too many SPF records found on domain");
             }
@@ -151,10 +151,11 @@ namespace BusinessMonitor.MailTools.Spf
                 throw new ArgumentNullException(nameof(value));
             }
 
-            // Check if the record starts with SPF version 1
-            if (!value.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase))
+            // Check if the record starts with SPF version 1, the version must be the
+            // complete first term of the record (RFC 7208 section 4.5)
+            if (!IsSpfRecord(value))
             {
-                throw new SpfInvalidException("Not a valid SPF record, does not contain a version");
+                throw new SpfInvalidException("Not a valid SPF record, does not start with a v=spf1 version");
             }
 
             // Split the terms
@@ -183,6 +184,16 @@ namespace BusinessMonitor.MailTools.Spf
             }
 
             return new SpfRecord(directives, modifiers);
+        }
+
+        /// <summary>
+        /// Checks whether a TXT record is a SPF record, the version must be exactly
+        /// the first term of the record (RFC 7208 section 4.5)
+        /// </summary>
+        private static bool IsSpfRecord(string value)
+        {
+            return value.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase)
+                && (value.Length == 6 || value[6] == ' ');
         }
 
         /// <summary>
