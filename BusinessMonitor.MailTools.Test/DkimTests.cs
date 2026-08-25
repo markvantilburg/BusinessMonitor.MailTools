@@ -335,6 +335,30 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519; h=sha256")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519; h=sha1:sha256")] // sha256 is allowed, sha1 is just ignored
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519")]                // Absent, all algorithms allowed
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=rsa; h=sha1")]            // Only invalid for ed25519 keys
+        public void TestKeyTypeHashConsistency(string value)
+        {
+            Assert.DoesNotThrow(() =>
+            {
+                DkimCheck.ParseDkimRecord(value);
+            });
+        }
+
+        [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519; h=sha1")] // An ed25519 key can only be used with sha256 (RFC 8463)
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1; k=ed25519")] // Tag order does not matter
+        public void TestInvalidKeyTypeHashCombination(string value)
+        {
+            Assert.Throws<DkimInvalidException>(() =>
+            {
+                DkimCheck.ParseDkimRecord(value);
+            });
+        }
+
+        [Test]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=")]              // Empty list is invalid
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=SHA256")]        // Case sensitive
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=Sha1")]

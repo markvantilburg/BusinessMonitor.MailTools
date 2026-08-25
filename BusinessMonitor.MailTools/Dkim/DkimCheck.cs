@@ -196,6 +196,13 @@ namespace BusinessMonitor.MailTools.Dkim
                 throw new DkimInvalidException("DKIM record is missing a required public key");
             }
 
+            // An ed25519 key can only be used with sha256, a record that does not allow
+            // sha256 can never verify a signature (RFC 8463)
+            if (record.KeyType == "ed25519" && record.Algorithms.Length > 0 && !record.Algorithms.Contains("sha256"))
+            {
+                throw new DkimInvalidException("DKIM record with an ed25519 key must allow the sha256 hash algorithm");
+            }
+
             // Return the record
             return record;
         }
