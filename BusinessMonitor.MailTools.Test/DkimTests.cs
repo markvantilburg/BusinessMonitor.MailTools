@@ -292,6 +292,30 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==;")]          // A trailing semicolon is allowed
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; ")]
+        public void TestTrailingSemicolon(string value)
+        {
+            var record = DkimCheck.ParseDkimRecord(value);
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+        }
+
+        [Test]
+        [TestCase("v=DKIM1; garbage; p=7JWI64WVIQ==")]  // Segments must be tag=value pairs
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; garbage")]
+        [TestCase("v=DKIM1;; p=7JWI64WVIQ==")]          // Empty segment in the middle of the record
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; =value")]   // Tag without a name
+        public void TestMalformedTag(string value)
+        {
+            Assert.Throws<DkimInvalidException>(() =>
+            {
+                DkimCheck.ParseDkimRecord(value);
+            });
+        }
+
+        [Test]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=email", new[] { "email" })]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=*", new[] { "*" })]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=email:*", new[] { "email", "*" })]

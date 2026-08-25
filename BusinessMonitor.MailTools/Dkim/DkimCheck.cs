@@ -88,10 +88,24 @@ namespace BusinessMonitor.MailTools.Dkim
                 var t = tags[index];
 
                 var i = t.IndexOf('=');
-                if (i == -1) continue;
+                if (i == -1)
+                {
+                    // A trailing semicolon is allowed, any other segment must be a tag=value pair
+                    if (index == tags.Length - 1 && t.Trim().Length == 0)
+                    {
+                        continue;
+                    }
+
+                    throw new DkimInvalidException($"DKIM record contains a malformed tag '{t.Trim()}'");
+                }
 
                 var tag = t.Substring(0, i).Trim();
                 var val = t.Substring(i + 1).Trim();
+
+                if (tag.Length == 0)
+                {
+                    throw new DkimInvalidException("DKIM record contains a tag without a name");
+                }
 
                 if (!seen.Add(tag))
                 {
