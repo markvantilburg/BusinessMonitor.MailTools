@@ -1,6 +1,7 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Util;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 
@@ -220,6 +221,62 @@ namespace BusinessMonitor.MailTools.Spf
         }
 
         /// <summary>
+        /// Parses the domain and optional dual CIDR lengths of an a or mx mechanism,
+        /// such as a, a/24, a//64, a:example.com/24//64 (RFC 7208 section 5.3)
+        /// </summary>
+        private static void ParseDomainCidr(SpfDirective directive, string value)
+        {
+            // Split the optional CIDR lengths from the domain
+            var index = value.IndexOf('/');
+
+            var domain = value;
+
+            if (index != -1)
+            {
+                domain = value.Substring(0, index);
+
+                var cidr = value.Substring(index);
+                var part4 = cidr;
+
+                // An IPv6 CIDR length is separated by a double slash, such as /24//64 or //64
+                var index6 = cidr.IndexOf("//", StringComparison.Ordinal);
+
+                if (index6 != -1)
+                {
+                    part4 = cidr.Substring(0, index6);
+
+                    directive.IP6Length = ParseCidrLength(cidr.Substring(index6 + 2), 128, value);
+                }
+
+                if (part4.Length > 0)
+                {
+                    directive.IP4Length = ParseCidrLength(part4.Substring(1), 32, value);
+                }
+            }
+
+            directive.Domain = domain;
+        }
+
+        /// <summary>
+        /// Parses a CIDR prefix length and validates it is within range
+        /// </summary>
+        private static int ParseCidrLength(string value, int max, string term)
+        {
+            // Leading zeros are not allowed (RFC 7208 section 12)
+            if (value.Length > 1 && value[0] == '0')
+            {
+                throw new SpfInvalidException($"Invalid CIDR prefix length in '{term}', must not contain leading zeros");
+            }
+
+            if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var length) || length > max)
+            {
+                throw new SpfInvalidException($"Invalid CIDR prefix length in '{term}', must be between 0 and {max}");
+            }
+
+            return length;
+        }
+
+        /// <summary>
         /// Validates the domain name of an include mechanism or redirect modifier,
         /// the name must be a valid DNS name with at least two labels
         /// </summary>
@@ -270,6 +327,22 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 value = term.Substring(index + 1);
                 mechanism = term.Substring(0, index);
+
+                if (value.Length == 0)
+                {
+                    throw new SpfInvalidException($"The {mechanism} mechanism has an empty value");
+                }
+            }
+            else
+            {
+                // A dual CIDR length may follow the a and mx mechanisms directly, such as a/24
+                var slash = term.IndexOf('/');
+
+                if (slash != -1)
+                {
+                    mechanism = term.Substring(0, slash);
+                    value = term.Substring(slash);
+                }
             }
 
             return ParseDirective(qualifier, mechanism, value, seenIpAddresses);
@@ -336,7 +409,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                 case SpfMechanism.A:
                 case SpfMechanism.MX:
-                    directive.Domain = value;
+                    ParseDomainCidr(directive, value);
 
                     break;
             }

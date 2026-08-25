@@ -26,6 +26,12 @@ namespace BusinessMonitor.MailTools.Spf
                 ip = value.Substring(0, pos);
                 var prefix = value.Substring(pos + 1);
 
+                // Leading zeros are not allowed (RFC 7208 section 12)
+                if (prefix.Length > 1 && prefix[0] == '0')
+                {
+                    throw new SpfInvalidException($"Invalid CIDR prefix length '{prefix}' in '{value}', must not contain leading zeros");
+                }
+
                 if (!int.TryParse(prefix, NumberStyles.None, CultureInfo.InvariantCulture, out var parsedLength))
                 {
                     throw new SpfInvalidException($"Invalid CIDR prefix length '{prefix}' in '{value}'");

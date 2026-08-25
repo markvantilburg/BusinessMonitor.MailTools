@@ -17,6 +17,8 @@ namespace BusinessMonitor.MailTools.Spf
             IP4 = null;
             IP6 = null;
             Domain = null;
+            IP4Length = null;
+            IP6Length = null;
             Addresses = new IPAddress[0];
         }
 
@@ -54,6 +56,16 @@ namespace BusinessMonitor.MailTools.Spf
         /// Gets the domain for the A or MX mechanism
         /// </summary>
         public string? Domain { get; set; }
+
+        /// <summary>
+        /// Gets the IPv4 CIDR prefix length for the A or MX mechanism, such as a/24
+        /// </summary>
+        public int? IP4Length { get; set; }
+
+        /// <summary>
+        /// Gets the IPv6 CIDR prefix length for the A or MX mechanism, such as a//64
+        /// </summary>
+        public int? IP6Length { get; set; }
 
         /// <summary>
         /// Gets the addresses for the A or MX mechanism

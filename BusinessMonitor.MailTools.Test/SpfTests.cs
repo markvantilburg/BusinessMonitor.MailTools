@@ -107,6 +107,63 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        [TestCase("v=spf1 a/24 -all", "", 24, null)]
+        [TestCase("v=spf1 a//64 -all", "", null, 64)]
+        [TestCase("v=spf1 a/24//64 -all", "", 24, 64)]
+        [TestCase("v=spf1 a:example.com/24 -all", "example.com", 24, null)]
+        [TestCase("v=spf1 mx:mail.example.com/24//64 -all", "mail.example.com", 24, 64)]
+        [TestCase("v=spf1 MX/16 -all", "", 16, null)]              // Mechanisms are case insensitive
+        [TestCase("v=spf1 a:example.com -all", "example.com", null, null)]
+        [TestCase("v=spf1 a/0//0 -all", "", 0, 0)]                 // Zero is a valid CIDR length
+        public void TestDualCidr(string value, string domain, int? length4, int? length6)
+        {
+            var record = SpfCheck.ParseSpfRecord(value);
+            var directive = record.Directives[0];
+
+            Assert.That(directive.Domain, Is.EqualTo(domain));
+            Assert.That(directive.IP4Length, Is.EqualTo(length4));
+            Assert.That(directive.IP6Length, Is.EqualTo(length6));
+        }
+
+        [Test]
+        [TestCase("v=spf1 a/33 -all")]                             // Above the IPv4 maximum
+        [TestCase("v=spf1 a//129 -all")]                           // Above the IPv6 maximum
+        [TestCase("v=spf1 a/abc -all")]
+        [TestCase("v=spf1 a/ -all")]
+        [TestCase("v=spf1 a// -all")]
+        [TestCase("v=spf1 a/+24 -all")]
+        [TestCase("v=spf1 a/24/64 -all")]                          // IPv6 length needs a double slash
+        [TestCase("v=spf1 a/024 -all")]                            // No leading zeros (RFC 7208 section 12)
+        [TestCase("v=spf1 a//064 -all")]
+        [TestCase("v=spf1 a/00 -all")]
+        [TestCase("v=spf1 mx: -all")]                              // Empty value after a colon
+        public void TestInvalidDualCidr(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestDualCidrLookup()
+        {
+            // The CIDR lengths must not change how the a mechanism resolves
+            var resolver = new DummyResolver();
+            resolver.AddText("businessmonitor.nl", "v=spf1 a/24 -all");
+            resolver.AddAddress("businessmonitor.nl", IPAddress.Parse("192.0.2.1"));
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            var directive = record.Directives[0];
+
+            Assert.That(directive.Domain, Is.EqualTo("businessmonitor.nl"));
+            Assert.That(directive.IP4Length, Is.EqualTo(24));
+            Assert.That(directive.Addresses, Has.Length.EqualTo(1));
+        }
+
+        [Test]
         public void TestRedirect()
         {
             var resolver = new DummyResolver();
@@ -462,6 +519,8 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=spf1 ip4:192.0.2.0/999 -all")]
         [TestCase("v=spf1 ip4:192.0.2.0/abc -all")]
         [TestCase("v=spf1 ip4:192.0.2.0/+24 -all")]
+        [TestCase("v=spf1 ip4:192.0.2.0/024 -all")]  // No leading zeros (RFC 7208 section 12)
+        [TestCase("v=spf1 ip6:2001:db8::/064 -all")]
         [TestCase("v=spf1 ip4:192.0.2.0/ -all")]
         [TestCase("v=spf1 ip6:2001:db8::/129 -all")]
         [TestCase("v=spf1 ip4:not-an-ip -all")]
