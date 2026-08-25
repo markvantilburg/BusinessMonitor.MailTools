@@ -94,12 +94,7 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 if (directive.Mechanism == SpfMechanism.Include && directive.Include != null)
                 {
-                    _lookups++;
-
-                    if (_lookups > MaxLookups)
-                    {
-                        throw new SpfLookupException("SPF record exceeds max lookups of 10");
-                    }
+                    CountLookup();
 
                     try
                     {
@@ -115,12 +110,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                 if (directive.Mechanism == SpfMechanism.A || directive.Mechanism == SpfMechanism.MX)
                 {
-                    _lookups++;
-
-                    if (_lookups > MaxLookups)
-                    {
-                        throw new SpfLookupException("SPF record exceeds max lookups of 10");
-                    }
+                    CountLookup();
 
                     if (string.IsNullOrEmpty(directive.Domain))
                     {
@@ -128,6 +118,13 @@ namespace BusinessMonitor.MailTools.Spf
                     }
 
                     directive.Addresses = ResolveDirective(directive);
+                }
+
+                // The ptr and exists mechanisms require a DNS lookup during evaluation
+                // and count toward the lookup limit (RFC 7208 section 4.6.4)
+                if (directive.Mechanism == SpfMechanism.Ptr || directive.Mechanism == SpfMechanism.Exists)
+                {
+                    CountLookup();
                 }
             }
 
@@ -137,12 +134,7 @@ namespace BusinessMonitor.MailTools.Spf
 
             if (redirect != null && !parsed.Directives.Any(x => x.Mechanism == SpfMechanism.All))
             {
-                _lookups++;
-
-                if (_lookups > MaxLookups)
-                {
-                    throw new SpfLookupException("SPF record exceeds max lookups of 10");
-                }
+                CountLookup();
 
                 try
                 {
@@ -218,6 +210,19 @@ namespace BusinessMonitor.MailTools.Spf
             }
 
             return new SpfRecord(directives, modifiers);
+        }
+
+        /// <summary>
+        /// Counts a DNS lookup toward the lookup limit of 10 (RFC 7208 section 4.6.4)
+        /// </summary>
+        private void CountLookup()
+        {
+            _lookups++;
+
+            if (_lookups > MaxLookups)
+            {
+                throw new SpfLookupException("SPF record exceeds max lookups of 10");
+            }
         }
 
         /// <summary>

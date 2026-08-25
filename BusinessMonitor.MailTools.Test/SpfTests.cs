@@ -146,6 +146,34 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestLookupLimitCountsPtrAndExists()
+        {
+            // The ptr and exists mechanisms count toward the lookup limit (RFC 7208 section 4.6.4)
+            var terms = string.Join(" ", Enumerable.Repeat("exists:e.businessmonitor.nl", 10));
+            var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 " + terms + " ptr -all");
+            var check = new SpfCheck(resolver);
+
+            Assert.Throws<SpfLookupException>(() =>
+            {
+                check.GetSpfRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
+        public void TestLookupLimitAtMaximum()
+        {
+            // Exactly 10 lookups is allowed
+            var terms = string.Join(" ", Enumerable.Repeat("exists:e.businessmonitor.nl", 9));
+            var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 " + terms + " ptr -all");
+            var check = new SpfCheck(resolver);
+
+            Assert.DoesNotThrow(() =>
+            {
+                check.GetSpfRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
         public void TestDualCidrLookup()
         {
             // The CIDR lengths must not change how the a mechanism resolves
