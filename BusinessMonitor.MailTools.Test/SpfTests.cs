@@ -146,6 +146,80 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        [TestCase("v=spf1 exists:e.example.com -all", "e.example.com")]
+        [TestCase("v=spf1 exists:%{ir}.%{v}._spf.%{d} -all", "%{ir}.%{v}._spf.%{d}")]
+        [TestCase("v=spf1 exists:%{i}.%{l1r+-}._spf.%{d} -all", "%{i}.%{l1r+-}._spf.%{d}")] // RFC 7208 section 7.4 example
+        [TestCase("v=spf1 exists:%%.%_.%-.example.com -all", "%%.%_.%-.example.com")]       // Literal macros
+        public void TestExists(string value, string domain)
+        {
+            var record = SpfCheck.ParseSpfRecord(value);
+
+            Assert.That(record.Directives[0].Mechanism, Is.EqualTo(SpfMechanism.Exists));
+            Assert.That(record.Directives[0].Domain, Is.EqualTo(domain));
+        }
+
+        [Test]
+        [TestCase("v=spf1 ptr -all", null)]                        // The domain is optional
+        [TestCase("v=spf1 ptr:example.com -all", "example.com")]
+        public void TestPtr(string value, string domain)
+        {
+            var record = SpfCheck.ParseSpfRecord(value);
+
+            Assert.That(record.Directives[0].Mechanism, Is.EqualTo(SpfMechanism.Ptr));
+            Assert.That(record.Directives[0].Domain, Is.EqualTo(domain));
+        }
+
+        [Test]
+        [TestCase("v=spf1 exists -all")]                           // The exists mechanism requires a domain
+        [TestCase("v=spf1 exists:%{x}.example.com -all")]          // Not a valid macro letter
+        [TestCase("v=spf1 exists:%{c}.example.com -all")]          // Only valid in an exp text
+        [TestCase("v=spf1 exists:%d.example.com -all")]            // Percent must start a macro
+        [TestCase("v=spf1 exists:%{d.example.com -all")]           // Unterminated macro
+        [TestCase("v=spf1 exists:%{dr2}.example.com -all")]        // Digits must come before the reverse marker
+        [TestCase("v=spf1 exists:%{} -all")]                       // Empty macro
+        [TestCase("v=spf1 ptr:not..a..domain -all")]
+        public void TestInvalidExistsAndPtr(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestMacroDomains()
+        {
+            // Macros are valid in any domain spec
+            Assert.DoesNotThrow(() =>
+            {
+                SpfCheck.ParseSpfRecord("v=spf1 include:%{d}.spf.example.com -all");
+            });
+
+            Assert.DoesNotThrow(() =>
+            {
+                SpfCheck.ParseSpfRecord("v=spf1 a:%{d}.example.com/24 -all");
+            });
+
+            Assert.DoesNotThrow(() =>
+            {
+                SpfCheck.ParseSpfRecord("v=spf1 redirect=%{d}._spf.example.com");
+            });
+        }
+
+        [Test]
+        public void TestMacroIncludeNotResolved()
+        {
+            // A domain with macros can only be resolved during evaluation, the
+            // lookup is counted but no DNS query is made
+            var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 include:%{d}.spf.example.com -all");
+            var check = new SpfCheck(resolver);
+
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.That(record.Directives[0].Included, Is.Null);
+        }
+
+        [Test]
         public void TestLookupLimitCountsPtrAndExists()
         {
             // The ptr and exists mechanisms count toward the lookup limit (RFC 7208 section 4.6.4)
@@ -243,6 +317,43 @@ namespace BusinessMonitor.MailTools.Test
             Assert.Throws<SpfLookupException>(() =>
             {
                 check.GetSpfRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
+        [TestCase("v=spf1 exp=explain.example.com -all", "explain.example.com")]
+        [TestCase("v=spf1 -all exp=explain._spf.%{d}", "explain._spf.%{d}")] // Modifiers may appear anywhere, macros are allowed
+        public void TestExp(string value, string expected)
+        {
+            var record = SpfCheck.ParseSpfRecord(value);
+            var exp = record.Modifiers[0];
+
+            Assert.That(exp.Name, Is.EqualTo("exp"));
+            Assert.That(exp.Value, Is.EqualTo(expected));
+        }
+
+        [Test]
+        [TestCase("v=spf1 exp=a.example.com exp=b.example.com -all")] // At most one exp (RFC 7208 section 6)
+        [TestCase("v=spf1 EXP=a.example.com exp=b.example.com -all")] // Modifier names are case insensitive
+        [TestCase("v=spf1 exp= -all")]                                // Value must be a domain name
+        [TestCase("v=spf1 exp=not..a..domain -all")]
+        public void TestInvalidExp(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
+        [Test]
+        [TestCase("v=spf1 all:foo")]                                  // The all mechanism takes no value (RFC 7208 section 5.1)
+        [TestCase("v=spf1 -all/24")]
+        [TestCase("v=spf1 all:")]
+        public void TestInvalidAll(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
             });
         }
 

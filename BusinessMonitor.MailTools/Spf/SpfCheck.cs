@@ -96,15 +96,19 @@ namespace BusinessMonitor.MailTools.Spf
                 {
                     CountLookup();
 
-                    try
+                    // A domain with macros can only be resolved during evaluation
+                    if (directive.Include.IndexOf('%') == -1)
                     {
-                        var included = GetRecord(directive.Include);
+                        try
+                        {
+                            var included = GetRecord(directive.Include);
 
-                        directive.Included = included;
-                    }
-                    catch (SpfException ex) when (ex is not SpfLookupException)
-                    {
-                        throw new SpfLookupException($"SPF include lookup failed for '{directive.Include}', see inner exception", ex);
+                            directive.Included = included;
+                        }
+                        catch (SpfException ex) when (ex is not SpfLookupException)
+                        {
+                            throw new SpfLookupException($"SPF include lookup failed for '{directive.Include}', see inner exception", ex);
+                        }
                     }
                 }
 
@@ -117,7 +121,11 @@ namespace BusinessMonitor.MailTools.Spf
                         directive.Domain = domain;
                     }
 
-                    directive.Addresses = ResolveDirective(directive);
+                    // A domain with macros can only be resolved during evaluation
+                    if (directive.Domain.IndexOf('%') == -1)
+                    {
+                        directive.Addresses = ResolveDirective(directive);
+                    }
                 }
 
                 // The ptr and exists mechanisms require a DNS lookup during evaluation
@@ -136,13 +144,17 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 CountLookup();
 
-                try
+                // A domain with macros can only be resolved during evaluation
+                if (redirect.Value.IndexOf('%') == -1)
                 {
-                    redirect.Included = GetRecord(redirect.Value);
-                }
-                catch (SpfException ex) when (ex is not SpfLookupException)
-                {
-                    throw new SpfLookupException($"SPF redirect lookup failed for '{redirect.Value}', see inner exception", ex);
+                    try
+                    {
+                        redirect.Included = GetRecord(redirect.Value);
+                    }
+                    catch (SpfException ex) when (ex is not SpfLookupException)
+                    {
+                        throw new SpfLookupException($"SPF redirect lookup failed for '{redirect.Value}', see inner exception", ex);
+                    }
                 }
             }
 
@@ -187,16 +199,17 @@ namespace BusinessMonitor.MailTools.Spf
                 {
                     var modifier = ParseModifier(term);
 
-                    // The redirect modifier must appear at most once (RFC 7208 section 6)
-                    // and its value must be a domain name
-                    if (modifier.Name.Equals("redirect", StringComparison.OrdinalIgnoreCase))
+                    // The redirect and exp modifiers must appear at most once (RFC 7208
+                    // section 6) and their values must be a domain name
+                    if (modifier.Name.Equals("redirect", StringComparison.OrdinalIgnoreCase) ||
+                        modifier.Name.Equals("exp", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (modifiers.Any(x => x.Name.Equals("redirect", StringComparison.OrdinalIgnoreCase)))
+                        if (modifiers.Any(x => x.Name.Equals(modifier.Name, StringComparison.OrdinalIgnoreCase)))
                         {
-                            throw new SpfInvalidException("SPF record contains more than one redirect modifier");
+                            throw new SpfInvalidException($"SPF record contains more than one {modifier.Name.ToLower()} modifier");
                         }
 
-                        ValidateDomainSpec(modifier.Value, "redirect");
+                        ValidateDomainSpec(modifier.Value, modifier.Name.ToLower());
                     }
 
                     modifiers.Add(modifier);
@@ -282,15 +295,76 @@ namespace BusinessMonitor.MailTools.Spf
         }
 
         /// <summary>
-        /// Validates the domain name of an include mechanism or redirect modifier,
-        /// the name must be a valid DNS name with at least two labels
+        /// Validates the domain of a mechanism or modifier, the value must be a valid
+        /// DNS name with at least two labels or a valid macro string (RFC 7208 section 7)
         /// </summary>
         private static void ValidateDomainSpec(string value, string term)
         {
+            // A domain with macros can only be expanded during evaluation
+            if (value.IndexOf('%') != -1)
+            {
+                if (!IsValidMacroString(value))
+                {
+                    throw new SpfInvalidException($"The {term} value '{value}' contains an invalid macro");
+                }
+
+                return;
+            }
+
             if (!DnsName.IsValidName(value) || value.IndexOf('.') == -1)
             {
                 throw new SpfInvalidException($"The {term} value '{value}' must be a domain name");
             }
+        }
+
+        /// <summary>
+        /// Checks whether a value is a valid macro string (RFC 7208 section 7.1)
+        /// </summary>
+        private static bool IsValidMacroString(string value)
+        {
+            for (var i = 0; i < value.Length; i++)
+            {
+                var c = value[i];
+
+                if (c == '%')
+                {
+                    if (i + 1 >= value.Length) return false;
+
+                    var next = value[++i];
+
+                    // %% is a literal percent, %_ is a space and %- is an url encoded space
+                    if (next == '%' || next == '_' || next == '-') continue;
+                    if (next != '{') return false;
+
+                    var end = value.IndexOf('}', i);
+                    if (end == -1) return false;
+
+                    // A macro is a letter followed by optional digits, an optional
+                    // reverse marker and optional delimiters, such as %{ir} or %{d2}
+                    var inner = value.Substring(i + 1, end - i - 1);
+                    if (inner.Length == 0) return false;
+
+                    // The c, r and t letters are only valid in an exp text
+                    if ("slodiphv".IndexOf(char.ToLowerInvariant(inner[0])) == -1) return false;
+
+                    var j = 1;
+
+                    while (j < inner.Length && inner[j] >= '0' && inner[j] <= '9') j++;
+                    if (j < inner.Length && inner[j] == 'r') j++;
+                    while (j < inner.Length && ".-+,/_=".IndexOf(inner[j]) != -1) j++;
+
+                    if (j != inner.Length) return false;
+
+                    i = end;
+                }
+                else if (c < 0x21 || c > 0x7E)
+                {
+                    // Literals must be visible ASCII characters
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -415,6 +489,42 @@ namespace BusinessMonitor.MailTools.Spf
                 case SpfMechanism.A:
                 case SpfMechanism.MX:
                     ParseDomainCidr(directive, value);
+
+                    if (!string.IsNullOrEmpty(directive.Domain))
+                    {
+                        ValidateDomainSpec(directive.Domain, mechanism.ToLower());
+                    }
+
+                    break;
+
+                case SpfMechanism.All:
+                    // The all mechanism takes no value (RFC 7208 section 5.1)
+                    if (value.Length > 0)
+                    {
+                        throw new SpfInvalidException("The all mechanism does not take a value");
+                    }
+
+                    break;
+
+                case SpfMechanism.Exists:
+                    // The exists mechanism requires a domain (RFC 7208 section 5.7)
+                    if (value.Length == 0)
+                    {
+                        throw new SpfInvalidException("The exists mechanism requires a domain");
+                    }
+
+                    ValidateDomainSpec(value, "exists");
+                    directive.Domain = value;
+
+                    break;
+
+                case SpfMechanism.Ptr:
+                    // The ptr mechanism takes an optional domain (RFC 7208 section 5.5)
+                    if (value.Length > 0)
+                    {
+                        ValidateDomainSpec(value, "ptr");
+                        directive.Domain = value;
+                    }
 
                     break;
             }

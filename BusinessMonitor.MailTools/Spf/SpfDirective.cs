@@ -53,7 +53,7 @@ namespace BusinessMonitor.MailTools.Spf
         public SpfAddress? IP6 { get; set; }
 
         /// <summary>
-        /// Gets the domain for the A or MX mechanism
+        /// Gets the domain for the A, MX, Ptr or Exists mechanism
         /// </summary>
         public string? Domain { get; set; }
 
