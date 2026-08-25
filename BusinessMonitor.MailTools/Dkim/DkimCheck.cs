@@ -162,7 +162,8 @@ namespace BusinessMonitor.MailTools.Dkim
                         record.Notes = val;
                         break;
 
-                    // Public key data
+                    // Public key data, the base64 is decoded and validated after all
+                    // tags are parsed so the key is only decoded once
                     case "p":
                         if (string.IsNullOrWhiteSpace(val))
                         {
@@ -171,7 +172,6 @@ namespace BusinessMonitor.MailTools.Dkim
                         }
                         else
                         {
-                            ValidateBase64(val);
                             record.PublicKey = val;
                         }
 
@@ -265,7 +265,16 @@ namespace BusinessMonitor.MailTools.Dkim
         /// </summary>
         private static void ValidatePublicKey(DkimRecord record)
         {
-            var key = Convert.FromBase64String(record.PublicKey!);
+            byte[] key;
+
+            try
+            {
+                key = Convert.FromBase64String(record.PublicKey!);
+            }
+            catch (FormatException)
+            {
+                throw new DkimInvalidException("DKIM record public key must contain valid base64");
+            }
 
             if (record.KeyType == "ed25519")
             {
@@ -321,22 +330,5 @@ namespace BusinessMonitor.MailTools.Dkim
             });
         }
 
-        private static void ValidateBase64(string value)
-        {
-            // Empty strings shouldn't throw
-            if (string.IsNullOrEmpty(value))
-            {
-                return;
-            }
-
-            try
-            {
-                _ = Convert.FromBase64String(value);
-            }
-            catch (FormatException)
-            {
-                throw new DkimInvalidException("DKIM record public key must contain valid base64");
-            }
-        }
     }
 }
