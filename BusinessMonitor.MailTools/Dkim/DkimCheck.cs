@@ -48,8 +48,7 @@ namespace BusinessMonitor.MailTools.Dkim
             var records = _resolver.GetTextRecords(name);
 
             // Find the DKIM record
-            //var record = records.FirstOrDefault(x => x.StartsWith("v=DKIM1"));
-            var dkimRecords = records.Where(x => x.StartsWith("v=DKIM1")).ToList();
+            var dkimRecords = records.Where(LooksLikeDkimRecord).ToList();
 
             if (dkimRecords.Count == 0)
             {
@@ -78,20 +77,16 @@ namespace BusinessMonitor.MailTools.Dkim
                 throw new ArgumentNullException(nameof(value));
             }
 
-            // Check if the record starts with DKIM version 1
-            if (!value.StartsWith("v=DKIM1"))
-            {
-                throw new DkimInvalidException("Not a valid DKIM record, does not contain a version");
-            }
-
             // Split all tags
-            var tags = value.Split(';').Skip(1);
+            var tags = value.Split(';');
             var record = new DkimRecord();
 
-            var seen = new HashSet<string>(StringComparer.Ordinal) { "v" };
+            var seen = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var t in tags)
+            for (var index = 0; index < tags.Length; index++)
             {
+                var t = tags[index];
+
                 var i = t.IndexOf('=');
                 if (i == -1) continue;
 
@@ -106,6 +101,20 @@ namespace BusinessMonitor.MailTools.Dkim
                 // Process the tag
                 switch (tag)
                 {
+                    // Version, optional but must be the first tag and exactly DKIM1 when present
+                    case "v":
+                        if (index != 0)
+                        {
+                            throw new DkimInvalidException("DKIM record version tag must be the first tag");
+                        }
+
+                        if (val != "DKIM1")
+                        {
+                            throw new DkimInvalidException("DKIM record version must be DKIM1");
+                        }
+
+                        break;
+
                     // Acceptable hash algorithms
                     case "h":
                         var algorithms = val.Split(':');
@@ -189,6 +198,32 @@ namespace BusinessMonitor.MailTools.Dkim
 
             // Return the record
             return record;
+        }
+
+        /// <summary>
+        /// Checks whether a TXT record looks like a DKIM record, either by its version tag
+        /// or, since the version tag is optional, by the presence of a public key tag
+        /// </summary>
+        private static bool LooksLikeDkimRecord(string value)
+        {
+            var tags = value.Split(';');
+
+            // A record starting with a v tag is a DKIM record only when the version is DKIM1
+            var first = tags[0];
+            var index = first.IndexOf('=');
+
+            if (index != -1 && first.Substring(0, index).Trim() == "v")
+            {
+                return first.Substring(index + 1).Trim() == "DKIM1";
+            }
+
+            // No version tag, look for a public key tag
+            return tags.Any(t =>
+            {
+                var i = t.IndexOf('=');
+
+                return i != -1 && t.Substring(0, i).Trim() == "p";
+            });
         }
 
         private static void ValidateBase64(string value)

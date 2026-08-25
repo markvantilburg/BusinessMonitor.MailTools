@@ -236,6 +236,62 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==")]
+        [TestCase("v = DKIM1 ; p=7JWI64WVIQ==")]        // Whitespace around = is allowed
+        [TestCase("k=rsa; p=7JWI64WVIQ==")]             // Version tag is optional
+        [TestCase("p=7JWI64WVIQ==")]
+        public void TestVersionTag(string value)
+        {
+            var record = DkimCheck.ParseDkimRecord(value);
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+        }
+
+        [Test]
+        [TestCase("v=DKIM2; p=7JWI64WVIQ==")]           // Version must be exactly DKIM1
+        [TestCase("v=DKIM1extra; p=7JWI64WVIQ==")]
+        [TestCase("v=dkim1; p=7JWI64WVIQ==")]           // Case sensitive
+        [TestCase("v=; p=7JWI64WVIQ==")]
+        [TestCase("p=7JWI64WVIQ==; v=DKIM1")]           // Version must be the first tag
+        public void TestInvalidVersionTag(string value)
+        {
+            Assert.Throws<DkimInvalidException>(() =>
+            {
+                DkimCheck.ParseDkimRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestLookupWithoutVersionTag()
+        {
+            var resolver = new DummyResolver("test._domainkey.business.nl", "k=rsa; p=7JWI64WVIQ==");
+            var check = new DkimCheck(resolver);
+
+            var record = check.GetDkimRecord("business.nl", "test");
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+        }
+
+        [Test]
+        public void TestLookupIgnoresUnrelatedRecords()
+        {
+            // Unrelated TXT records on the same name should not count as DKIM records
+            var resolver = new DummyResolver("test._domainkey.business.nl", new string[]
+            {
+                "google-site-verification=abc123",
+                "v=DKIM1; p=7JWI64WVIQ=="
+            });
+            var check = new DkimCheck(resolver);
+
+            var record = check.GetDkimRecord("business.nl", "test");
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+        }
+
+        [Test]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=email", new[] { "email" })]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=*", new[] { "*" })]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=email:*", new[] { "email", "*" })]
