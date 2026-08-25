@@ -50,5 +50,10 @@
         /// </summary>
         public bool IsRevoked { get; internal set; }
 
+        /// <summary>
+        /// Gets the public key size in bits, the RSA modulus size or 256 for ed25519 keys, 0 when the key is revoked
+        /// </summary>
+        public int KeySize { get; internal set; }
+
     }
 }

@@ -217,8 +217,49 @@ namespace BusinessMonitor.MailTools.Dkim
                 throw new DkimInvalidException("DKIM record with an ed25519 key must allow the sha256 hash algorithm");
             }
 
+            // Validate the public key data against the key type
+            if (!record.IsRevoked)
+            {
+                ValidatePublicKey(record);
+            }
+
             // Return the record
             return record;
+        }
+
+        /// <summary>
+        /// Validates the public key data against the key type and sets the key size
+        /// </summary>
+        private static void ValidatePublicKey(DkimRecord record)
+        {
+            var key = Convert.FromBase64String(record.PublicKey!);
+
+            if (record.KeyType == "ed25519")
+            {
+                // An ed25519 public key is a raw 32 byte public key (RFC 8463)
+                if (key.Length != 32)
+                {
+                    throw new DkimInvalidException("DKIM record ed25519 public key must be a raw 32 byte public key");
+                }
+
+                record.KeySize = 256;
+
+                return;
+            }
+
+            // An RSA public key is a DER encoded SubjectPublicKeyInfo structure (RFC 6376)
+            if (!DkimKeyReader.TryGetRsaModulusBits(key, out var bits))
+            {
+                throw new DkimInvalidException("DKIM record RSA public key is not a valid DER encoded RSA public key");
+            }
+
+            // RFC 8301 requires a minimum RSA key size of 1024 bits
+            if (bits < 1024)
+            {
+                throw new DkimInvalidException($"DKIM record RSA public key of {bits} bits is below the minimum of 1024 bits");
+            }
+
+            record.KeySize = bits;
         }
 
         /// <summary>

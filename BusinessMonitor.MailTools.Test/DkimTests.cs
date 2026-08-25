@@ -9,18 +9,29 @@ namespace BusinessMonitor.MailTools.Test
 {
     internal class DkimTests
     {
+        // A valid 1024 bit RSA public key
+        private const string RsaKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCuSDS3a/QcWYbKrc/zM8KguDIeb4FQtRQFUTGLbx8FeYfFQ3+tsgU3p0FQCtrR8VfzlHkqU7381A4SMNwXzBW4vB1U0GhimPM6HxcHDdZCjXXqmCHqXoIchHs07lncb1JU83V5HG9g2n8ocWqq+9Hr0KfeG6vgLUSGm5uSXQeDCwIDAQAB";
+
+        // A valid 2048 bit RSA public key
+        private const string Rsa2048Key = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxEXr/hvIkxRP5uKoXYFiRPBSRsLwHOMq5imQY7+qX4WzfC14VoKpdN6SwK1nO9QqqFHhEhBgFpZqhK2QJFaJGp9ALgJRAczAGlFjEOSu82q7doG4no24Or4Jj4SeN2d5vvxI4ec8RveoRmZBzOKj4Lf8NhuJzJjf2ECf9WiOAagRzitvNYlNCuSy4IlGenYRkn9bOYCcU3rWEu/lYNpFI706iKHVc3ls+ARGnq6jAVbfztuBi9eosR06mzRZhUwXD4pzuSf5gkNYM4jrh/T5H4RP7ECSfn280oji9TLXNvCUgBju4gjt3lBvF2pHSc4zOUe4vTgN6+4DpwLX8vdv3wIDAQAB";
+
+        // A 512 bit RSA public key, below the RFC 8301 minimum of 1024 bits
+        private const string Rsa512Key = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAN8c5XSiQHW0yhAM1Ri5p/AqskZ4/6Vq4YN+48G8PFmZm7zUylOnWuaGtYOCLm02qXusGWhtJPbmaJGwTpx0JOkCAwEAAQ==";
+
+        // A valid ed25519 public key, the RFC 8463 example key
+        private const string Ed25519Key = "11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=";
         [Test]
         public void TestParse()
         {
-            var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==; n=Hello, World!");
+            var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=" + RsaKey + "; n=Hello, World!");
 
             Assert.That(record, Is.Not.Null);
-            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+            Assert.That(record.PublicKey, Is.EqualTo(RsaKey));
             Assert.That(record.Notes, Is.EqualTo("Hello, World!"));
             Assert.That(record.KeyType, Is.EqualTo("rsa"));
             Assert.That(record.Algorithms.Length, Is.EqualTo(0));
 
-            var record2 = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==; h=sha1:sha256; k=ed25519; s=email");
+            var record2 = DkimCheck.ParseDkimRecord("v=DKIM1; p=" + Ed25519Key + "; h=sha1:sha256; k=ed25519; s=email");
 
             Assert.That(record2.Algorithms, Does.Contain("sha1"));
             Assert.That(record2.KeyType, Is.EqualTo("ed25519"));
@@ -30,13 +41,13 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestFlags()
         {
-            var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==; t=y:s");
+            var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=" + RsaKey + "; t=y:s");
 
             Assert.That(record, Is.Not.Null);
             Assert.That((record.Flags & DkimFlags.Testing) != 0, Is.True);
             Assert.That((record.Flags & DkimFlags.SameDomain) != 0, Is.True);
 
-            var record2 = DkimCheck.ParseDkimRecord("v=DKIM1; p=7JWI64WVIQ==");
+            var record2 = DkimCheck.ParseDkimRecord("v=DKIM1; p=" + RsaKey);
 
             Assert.That(record2, Is.Not.Null);
             Assert.That(record2.Flags, Is.EqualTo(DkimFlags.None));
@@ -45,13 +56,13 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestLookup()
         {
-            var resolver = new DummyResolver("test._domainkey.businessmonitor.nl", "v=DKIM1; p=7JWI64WVIQ==; n=Hello, World!");
+            var resolver = new DummyResolver("test._domainkey.businessmonitor.nl", "v=DKIM1; p=" + RsaKey + "; n=Hello, World!");
 
             var check = new DkimCheck(resolver);
             var record = check.GetDkimRecord("businessmonitor.nl", "test");
 
             Assert.That(record, Is.Not.Null);
-            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+            Assert.That(record.PublicKey, Is.EqualTo(RsaKey));
             Assert.That(record.Notes, Is.EqualTo("Hello, World!"));
         }
 
@@ -204,6 +215,32 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        [TestCase("v=DKIM1; p=" + RsaKey, 1024)]
+        [TestCase("v=DKIM1; p=" + Rsa2048Key, 2048)]
+        [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519", 256)]
+        public void TestKeySize(string value, int expected)
+        {
+            var record = DkimCheck.ParseDkimRecord(value);
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.KeySize, Is.EqualTo(expected));
+        }
+
+        [Test]
+        [TestCase("v=DKIM1; p=" + Rsa512Key)]               // Below the RFC 8301 minimum of 1024 bits
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==")]               // Valid base64 but not a DER encoded RSA key
+        [TestCase("v=DKIM1; p=" + Ed25519Key)]              // An ed25519 key is not a valid RSA key
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=ed25519")]  // An RSA key is not a raw 32 byte ed25519 key
+        [TestCase("v=DKIM1; p=AAAA; k=ed25519")]            // 3 bytes, not a 32 byte ed25519 key
+        public void TestInvalidKeyData(string value)
+        {
+            Assert.Throws<DkimInvalidException>(() =>
+            {
+                DkimCheck.ParseDkimRecord(value);
+            });
+        }
+
+        [Test]
         public void TestMultipleDkimRecords()
         {
             // Multiple DKIM records for the same selector is invalid
@@ -221,12 +258,12 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==", "rsa")]                    // Absent, defaults to rsa
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=", "rsa")]                // Empty, defaults to rsa
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=rsa", "rsa")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519", "ed25519")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k= rsa ", "rsa")]           // Surrounding whitespace
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519;K=rsa", "ed25519")] // k is case sensitive
+        [TestCase("v=DKIM1; p=" + RsaKey, "rsa")]                    // Absent, defaults to rsa
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=", "rsa")]                // Empty, defaults to rsa
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=rsa", "rsa")]
+        [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519", "ed25519")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k= rsa ", "rsa")]           // Surrounding whitespace
+        [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519;K=rsa", "ed25519")] // k is case sensitive
         public void TestKeyType(string value, string expected)
         {
             var record = DkimCheck.ParseDkimRecord(value);
@@ -236,24 +273,24 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==")]
-        [TestCase("v = DKIM1 ; p=7JWI64WVIQ==")]        // Whitespace around = is allowed
-        [TestCase("k=rsa; p=7JWI64WVIQ==")]             // Version tag is optional
-        [TestCase("p=7JWI64WVIQ==")]
+        [TestCase("v=DKIM1; p=" + RsaKey)]
+        [TestCase("v = DKIM1 ; p=" + RsaKey)]        // Whitespace around = is allowed
+        [TestCase("k=rsa; p=" + RsaKey)]             // Version tag is optional
+        [TestCase("p=" + RsaKey)]
         public void TestVersionTag(string value)
         {
             var record = DkimCheck.ParseDkimRecord(value);
 
             Assert.That(record, Is.Not.Null);
-            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+            Assert.That(record.PublicKey, Is.EqualTo(RsaKey));
         }
 
         [Test]
-        [TestCase("v=DKIM2; p=7JWI64WVIQ==")]           // Version must be exactly DKIM1
-        [TestCase("v=DKIM1extra; p=7JWI64WVIQ==")]
-        [TestCase("v=dkim1; p=7JWI64WVIQ==")]           // Case sensitive
-        [TestCase("v=; p=7JWI64WVIQ==")]
-        [TestCase("p=7JWI64WVIQ==; v=DKIM1")]           // Version must be the first tag
+        [TestCase("v=DKIM2; p=" + RsaKey)]           // Version must be exactly DKIM1
+        [TestCase("v=DKIM1extra; p=" + RsaKey)]
+        [TestCase("v=dkim1; p=" + RsaKey)]           // Case sensitive
+        [TestCase("v=; p=" + RsaKey)]
+        [TestCase("p=" + RsaKey + "; v=DKIM1")]           // Version must be the first tag
         public void TestInvalidVersionTag(string value)
         {
             Assert.Throws<DkimInvalidException>(() =>
@@ -265,13 +302,13 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestLookupWithoutVersionTag()
         {
-            var resolver = new DummyResolver("test._domainkey.business.nl", "k=rsa; p=7JWI64WVIQ==");
+            var resolver = new DummyResolver("test._domainkey.business.nl", "k=rsa; p=" + RsaKey);
             var check = new DkimCheck(resolver);
 
             var record = check.GetDkimRecord("business.nl", "test");
 
             Assert.That(record, Is.Not.Null);
-            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+            Assert.That(record.PublicKey, Is.EqualTo(RsaKey));
         }
 
         [Test]
@@ -281,32 +318,32 @@ namespace BusinessMonitor.MailTools.Test
             var resolver = new DummyResolver("test._domainkey.business.nl", new string[]
             {
                 "google-site-verification=abc123",
-                "v=DKIM1; p=7JWI64WVIQ=="
+                "v=DKIM1; p=" + RsaKey
             });
             var check = new DkimCheck(resolver);
 
             var record = check.GetDkimRecord("business.nl", "test");
 
             Assert.That(record, Is.Not.Null);
-            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+            Assert.That(record.PublicKey, Is.EqualTo(RsaKey));
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==;")]          // A trailing semicolon is allowed
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; ")]
+        [TestCase("v=DKIM1; p=" + RsaKey + ";")]          // A trailing semicolon is allowed
+        [TestCase("v=DKIM1; p=" + RsaKey + "; ")]
         public void TestTrailingSemicolon(string value)
         {
             var record = DkimCheck.ParseDkimRecord(value);
 
             Assert.That(record, Is.Not.Null);
-            Assert.That(record.PublicKey, Is.EqualTo("7JWI64WVIQ=="));
+            Assert.That(record.PublicKey, Is.EqualTo(RsaKey));
         }
 
         [Test]
-        [TestCase("v=DKIM1; garbage; p=7JWI64WVIQ==")]  // Segments must be tag=value pairs
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; garbage")]
-        [TestCase("v=DKIM1;; p=7JWI64WVIQ==")]          // Empty segment in the middle of the record
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; =value")]   // Tag without a name
+        [TestCase("v=DKIM1; garbage; p=" + RsaKey)]  // Segments must be tag=value pairs
+        [TestCase("v=DKIM1; p=" + RsaKey + "; garbage")]
+        [TestCase("v=DKIM1;; p=" + RsaKey)]          // Empty segment in the middle of the record
+        [TestCase("v=DKIM1; p=" + RsaKey + "; =value")]   // Tag without a name
         public void TestMalformedTag(string value)
         {
             Assert.Throws<DkimInvalidException>(() =>
@@ -316,12 +353,12 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=email", new[] { "email" })]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=*", new[] { "*" })]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=email:*", new[] { "email", "*" })]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s= email : * ", new[] { "email", "*" })] // Whitespace around colons is allowed
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=tlsrpt:email", new[] { "tlsrpt", "email" })] // Unrecognized types are ignored
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==", new[] { "*" })] // Absent, defaults to all service types
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=email", new[] { "email" })]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=*", new[] { "*" })]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=email:*", new[] { "email", "*" })]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s= email : * ", new[] { "email", "*" })] // Whitespace around colons is allowed
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=tlsrpt:email", new[] { "tlsrpt", "email" })] // Unrecognized types are ignored
+        [TestCase("v=DKIM1; p=" + RsaKey, new[] { "*" })] // Absent, defaults to all service types
         public void TestServiceType(string value, string[] expected)
         {
             var record = DkimCheck.ParseDkimRecord(value);
@@ -331,12 +368,12 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=")]           // Empty list does not include email
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=web")]        // Record does not apply to email
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=tlsrpt")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=EMAIL")]      // Case sensitive
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=Email")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=e mail")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=")]           // Empty list does not include email
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=web")]        // Record does not apply to email
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=tlsrpt")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=EMAIL")]      // Case sensitive
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=Email")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; s=e mail")]
         public void TestInvalidServiceType(string value)
         {
             Assert.Throws<DkimInvalidException>(() =>
@@ -346,10 +383,10 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1", new[] { "sha1" })]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha256", new[] { "sha256" })]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1:sha256", new[] { "sha1", "sha256" })]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==", new string[0])] // Absent, all algorithms allowed
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1", new[] { "sha1" })]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha256", new[] { "sha256" })]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1:sha256", new[] { "sha1", "sha256" })]
+        [TestCase("v=DKIM1; p=" + RsaKey, new string[0])] // Absent, all algorithms allowed
         public void TestHashAlgorithms(string value, string[] expected)
         {
             var record = DkimCheck.ParseDkimRecord(value);
@@ -359,10 +396,10 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519; h=sha256")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519; h=sha1:sha256")] // sha256 is allowed, sha1 is just ignored
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519")]                // Absent, all algorithms allowed
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=rsa; h=sha1")]            // Only invalid for ed25519 keys
+        [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519; h=sha256")]
+        [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519; h=sha1:sha256")] // sha256 is allowed, sha1 is just ignored
+        [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519")]                // Absent, all algorithms allowed
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=rsa; h=sha1")]            // Only invalid for ed25519 keys
         public void TestKeyTypeHashConsistency(string value)
         {
             Assert.DoesNotThrow(() =>
@@ -372,8 +409,8 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519; h=sha1")] // An ed25519 key can only be used with sha256 (RFC 8463)
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1; k=ed25519")] // Tag order does not matter
+        [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519; h=sha1")] // An ed25519 key can only be used with sha256 (RFC 8463)
+        [TestCase("v=DKIM1; p=" + Ed25519Key + "; h=sha1; k=ed25519")] // Tag order does not matter
         public void TestInvalidKeyTypeHashCombination(string value)
         {
             Assert.Throws<DkimInvalidException>(() =>
@@ -383,14 +420,14 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=")]              // Empty list is invalid
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=SHA256")]        // Case sensitive
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=Sha1")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha512")]        // Not a registered algorithm
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=md5")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1:")]         // Empty list entry
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1::sha256")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha 256")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=")]              // Empty list is invalid
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=SHA256")]        // Case sensitive
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=Sha1")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha512")]        // Not a registered algorithm
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=md5")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1:")]         // Empty list entry
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1::sha256")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha 256")]
         public void TestInvalidHashAlgorithm(string value)
         {
             Assert.Throws<DkimInvalidException>(() =>
@@ -400,15 +437,15 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=RSA")] // Case sensitive
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=Ed25519")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=r sa")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=dsa")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed448")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=rsa2048")]
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ED25519;K=rsa")] // k is case sensitive
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; K=ed25519;k=aap")] // k is case sensitive
-        [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=ed25519;k=rsa")] // k is case sensitive
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=RSA")] // Case sensitive
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=Ed25519")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=r sa")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=dsa")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=ed448")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=rsa2048")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=ED25519;K=rsa")] // k is case sensitive
+        [TestCase("v=DKIM1; p=" + RsaKey + "; K=ed25519;k=aap")] // k is case sensitive
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=ed25519;k=rsa")] // k is case sensitive
         public void TestInvalidKeyType(string value)
         {
             Assert.Throws<DkimInvalidException>(() =>
