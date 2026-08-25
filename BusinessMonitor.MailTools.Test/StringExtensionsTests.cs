@@ -83,6 +83,21 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestKeepEmptyEntries()
+        {
+            // The options overload can keep empty entries
+            var result = "hello, ,world".SplitTrim(',', System.StringSplitOptions.None);
+
+            Assert.That(result.Length, Is.EqualTo(3));
+            Assert.That(result[1], Is.EqualTo(""));
+
+            var result2 = "hello,,world".SplitTrim(',', System.StringSplitOptions.None);
+
+            Assert.That(result2.Length, Is.EqualTo(3));
+            Assert.That(result2[1], Is.EqualTo(""));
+        }
+
+        [Test]
         public void TestOtherSeparator()
         {
             var result = "sha1 : sha256".SplitTrim(':');

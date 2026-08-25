@@ -4,7 +4,12 @@
     {
         internal static string[] SplitTrim(this string value, char separator)
         {
-            return value.Split([separator], StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
+            return SplitTrim(value, separator, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        internal static string[] SplitTrim(this string value, char separator, StringSplitOptions options)
+        {
+            return value.Split([separator], options).Select(x => x.Trim()).ToArray();
         }
     }
 }
