@@ -108,7 +108,17 @@ namespace BusinessMonitor.MailTools.Dkim
                 {
                     // Acceptable hash algorithms
                     case "h":
-                        record.Algorithms = val.Split(':');
+                        var algorithms = val.Split(':');
+
+                        foreach (var algorithm in algorithms)
+                        {
+                            if (algorithm != "sha1" && algorithm != "sha256")
+                            {
+                                throw new DkimInvalidException("DKIM record invalid hash algorithm only sha1 or sha256 supported");
+                            }
+                        }
+
+                        record.Algorithms = algorithms;
                         break;
 
                     // Key type

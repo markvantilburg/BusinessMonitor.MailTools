@@ -236,6 +236,36 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1", new[] { "sha1" })]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha256", new[] { "sha256" })]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1:sha256", new[] { "sha1", "sha256" })]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==", new string[0])] // Absent, all algorithms allowed
+        public void TestHashAlgorithms(string value, string[] expected)
+        {
+            var record = DkimCheck.ParseDkimRecord(value);
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.Algorithms, Is.EqualTo(expected));
+        }
+
+        [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=")]              // Empty list is invalid
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=SHA256")]        // Case sensitive
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=Sha1")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha512")]        // Not a registered algorithm
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=md5")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1:")]         // Empty list entry
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1::sha256")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha 256")]
+        public void TestInvalidHashAlgorithm(string value)
+        {
+            Assert.Throws<DkimInvalidException>(() =>
+            {
+                DkimCheck.ParseDkimRecord(value);
+            });
+        }
+
+        [Test]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=RSA")] // Case sensitive
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=Ed25519")]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; k=r sa")]
