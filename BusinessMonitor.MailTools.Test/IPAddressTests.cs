@@ -92,6 +92,11 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("2001:db8::5", 128, "2001:db8::5", true)]   // /128 exact host
         [TestCase("2001:db8::5", 128, "2001:db8::4", false)]
         [TestCase("2001:db8::5", 128, "2001:db8::6", false)]
+        // Long non-aligned IPv6 prefixes, the difference sits deep in the last bytes
+        [TestCase("6734:5a65:c36:d1d8:2251:543e:3c3c:6007", 114, "6734:5a65:c36:d1d8:2251:543e:3c3c:6027", true)]  // differs only in host bits
+        [TestCase("2001:db8::c000", 114, "2001:db8::8000", false)]  // differs in the last prefix bit
+        [TestCase("2001:db8::c000", 114, "2001:db8::ffff", true)]   // /114 spans the low 14 bits
+        [TestCase("2001:db8::c000", 114, "2001:db8::bfff", false)]  // just below the range
         public void TestArbitraryPrefixLengths(string network, int length, string address, bool expected)
         {
             var result = IPAddressHelper.IsInRange(IPAddress.Parse(address), IPAddress.Parse(network), length);
@@ -99,5 +104,37 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(result, Is.EqualTo(expected));
         }
 
+        [Test]
+        public void TestZeroPrefixIPv6()
+        {
+            // /0 matches every address
+            var network = IPAddress.Parse("2001:db8::");
+
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("::1"), network, 0), Is.True);
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), network, 0), Is.True);
+        }
+
+        [Test]
+        public void TestOutOfRangeLength()
+        {
+            // An invalid prefix length is never a match, it must not throw
+            var network4 = IPAddress.Parse("192.168.0.0");
+            var network6 = IPAddress.Parse("2001:db8::");
+
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("192.168.0.1"), network4, 33), Is.False);
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("192.168.0.1"), network4, 128), Is.False);
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("192.168.0.1"), network4, -1), Is.False);
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("2001:db8::1"), network6, 129), Is.False);
+        }
+
+        [Test]
+        public void TestMappedIPv6IsNotIPv4()
+        {
+            // An IPv4 mapped IPv6 address is a different address family and never
+            // matches an IPv4 network
+            var network = IPAddress.Parse("192.168.0.0");
+
+            Assert.That(IPAddressHelper.IsInRange(IPAddress.Parse("::ffff:192.168.0.1"), network, 24), Is.False);
+        }
     }
 }
