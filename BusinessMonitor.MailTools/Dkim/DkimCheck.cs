@@ -154,7 +154,16 @@ namespace BusinessMonitor.MailTools.Dkim
 
                     // Service Type
                     case "s":
-                        record.ServiceType = val.Split(':');
+                        var serviceTypes = val.SplitTrim(':');
+
+                        // Unrecognized service types are ignored, but the record must apply to
+                        // email or all service types
+                        if (!serviceTypes.Any(x => x == "*" || x == "email"))
+                        {
+                            throw new DkimInvalidException("DKIM record service type must include email or *");
+                        }
+
+                        record.ServiceType = serviceTypes;
 
                         break;
 

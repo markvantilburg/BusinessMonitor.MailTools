@@ -11,7 +11,7 @@
             KeyType = "rsa";
             Notes = string.Empty;
             PublicKey = null;
-            ServiceType = new string[0];
+            ServiceType = new string[] { "*" }; // Absent s= tag defaults to all service types
             Flags = DkimFlags.None;
         }
 

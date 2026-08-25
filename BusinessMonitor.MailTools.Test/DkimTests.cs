@@ -236,6 +236,36 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=email", new[] { "email" })]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=*", new[] { "*" })]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=email:*", new[] { "email", "*" })]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s= email : * ", new[] { "email", "*" })] // Whitespace around colons is allowed
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=tlsrpt:email", new[] { "tlsrpt", "email" })] // Unrecognized types are ignored
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==", new[] { "*" })] // Absent, defaults to all service types
+        public void TestServiceType(string value, string[] expected)
+        {
+            var record = DkimCheck.ParseDkimRecord(value);
+
+            Assert.That(record, Is.Not.Null);
+            Assert.That(record.ServiceType, Is.EqualTo(expected));
+        }
+
+        [Test]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=")]           // Empty list does not include email
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=web")]        // Record does not apply to email
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=tlsrpt")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=EMAIL")]      // Case sensitive
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=Email")]
+        [TestCase("v=DKIM1; p=7JWI64WVIQ==; s=e mail")]
+        public void TestInvalidServiceType(string value)
+        {
+            Assert.Throws<DkimInvalidException>(() =>
+            {
+                DkimCheck.ParseDkimRecord(value);
+            });
+        }
+
+        [Test]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1", new[] { "sha1" })]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha256", new[] { "sha256" })]
         [TestCase("v=DKIM1; p=7JWI64WVIQ==; h=sha1:sha256", new[] { "sha1", "sha256" })]
