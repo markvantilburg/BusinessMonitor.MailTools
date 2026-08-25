@@ -20,5 +20,11 @@
         /// Gets the modifier value
         /// </summary>
         public string Value { get; set; }
+
+        /// <summary>
+        /// Gets the record a redirect modifier points to, this will be null if no lookup was done
+        /// or when the redirect was ignored because the record contains an all mechanism
+        /// </summary>
+        public SpfRecord? Included { get; set; }
     }
 }

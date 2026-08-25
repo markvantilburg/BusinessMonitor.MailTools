@@ -107,6 +107,74 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestRedirect()
+        {
+            var resolver = new DummyResolver();
+            resolver.AddText("businessmonitor.nl", "v=spf1 redirect=_spf.businessmonitor.nl");
+            resolver.AddText("_spf.businessmonitor.nl", "v=spf1 ip4:192.0.2.1 -all");
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            var redirect = record.Modifiers[0];
+
+            Assert.That(redirect.Name, Is.EqualTo("redirect"));
+            Assert.That(redirect.Included, Is.Not.Null);
+            Assert.That(redirect.Included.Directives[0].Mechanism, Is.EqualTo(SpfMechanism.IP4));
+        }
+
+        [Test]
+        public void TestRedirectNotFound()
+        {
+            // A redirect to a domain without a SPF record is a permanent error (RFC 7208 section 6.1)
+            var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 redirect=_spf.businessmonitor.nl");
+            var check = new SpfCheck(resolver);
+
+            Assert.Throws<SpfLookupException>(() =>
+            {
+                check.GetSpfRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
+        public void TestRedirectIgnoredWithAll()
+        {
+            // A redirect modifier is ignored when the record contains an all mechanism (RFC 7208 section 6.1)
+            var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 ip4:192.0.2.1 -all redirect=_spf.businessmonitor.nl");
+            var check = new SpfCheck(resolver);
+
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.That(record.Modifiers[0].Included, Is.Null);
+        }
+
+        [Test]
+        public void TestRedirectLoop()
+        {
+            // A redirect to itself must hit the lookup limit and not recurse forever
+            var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 redirect=businessmonitor.nl");
+            var check = new SpfCheck(resolver);
+
+            Assert.Throws<SpfLookupException>(() =>
+            {
+                check.GetSpfRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
+        [TestCase("v=spf1 redirect=a.example.com redirect=b.example.com")] // At most one redirect (RFC 7208 section 6)
+        [TestCase("v=spf1 redirect=A.example.com REDIRECT=b.example.com")] // Modifier names are case insensitive
+        [TestCase("v=spf1 redirect=")]                                     // Value must be a domain name
+        [TestCase("v=spf1 redirect=not..a..domain")]
+        public void TestInvalidRedirect(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
+        [Test]
         [TestCase("v=spf1")]                            // Version only
         [TestCase("V=SPF1 -all")]                       // Version is case insensitive
         public void TestVersion(string value)

@@ -1,8 +1,8 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
+using BusinessMonitor.MailTools.Util;
 using System.Net;
 using System.Net.Sockets;
-using System.Text.RegularExpressions;
 
 namespace BusinessMonitor.MailTools.Spf
 {
@@ -11,8 +11,6 @@ namespace BusinessMonitor.MailTools.Spf
     /// </summary>
     public class SpfCheck
     {
-        private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(200);
-
         /// <summary>
         /// The number of lookups the resolver can make
         /// </summary>
@@ -132,6 +130,29 @@ namespace BusinessMonitor.MailTools.Spf
                 }
             }
 
+            // Process a redirect modifier, it is ignored when the record contains
+            // an all mechanism (RFC 7208 section 6.1)
+            var redirect = parsed.Modifiers.FirstOrDefault(x => x.Name.Equals("redirect", StringComparison.OrdinalIgnoreCase));
+
+            if (redirect != null && !parsed.Directives.Any(x => x.Mechanism == SpfMechanism.All))
+            {
+                _lookups++;
+
+                if (_lookups > MaxLookups)
+                {
+                    throw new SpfLookupException("SPF record exceeds max lookups of 10");
+                }
+
+                try
+                {
+                    redirect.Included = GetRecord(redirect.Value);
+                }
+                catch (SpfException ex) when (ex is not SpfLookupException)
+                {
+                    throw new SpfLookupException($"SPF redirect lookup failed for '{redirect.Value}', see inner exception", ex);
+                }
+            }
+
             return parsed;
         }
 
@@ -173,6 +194,18 @@ namespace BusinessMonitor.MailTools.Spf
                 {
                     var modifier = ParseModifier(term);
 
+                    // The redirect modifier must appear at most once (RFC 7208 section 6)
+                    // and its value must be a domain name
+                    if (modifier.Name.Equals("redirect", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (modifiers.Any(x => x.Name.Equals("redirect", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            throw new SpfInvalidException("SPF record contains more than one redirect modifier");
+                        }
+
+                        ValidateDomainSpec(modifier.Value, "redirect");
+                    }
+
                     modifiers.Add(modifier);
                 }
                 else
@@ -184,6 +217,18 @@ namespace BusinessMonitor.MailTools.Spf
             }
 
             return new SpfRecord(directives, modifiers);
+        }
+
+        /// <summary>
+        /// Validates the domain name of an include mechanism or redirect modifier,
+        /// the name must be a valid DNS name with at least two labels
+        /// </summary>
+        private static void ValidateDomainSpec(string value, string term)
+        {
+            if (!DnsName.IsValidName(value) || value.IndexOf('.') == -1)
+            {
+                throw new SpfInvalidException($"The {term} value '{value}' must be a domain name");
+            }
         }
 
         /// <summary>
@@ -257,11 +302,7 @@ namespace BusinessMonitor.MailTools.Spf
                     directive.Include = value;
 
                     // do a sanity check on the domain name to make sure its legal
-                    if (value.Length > 253 || !Regex.IsMatch(value, @"^[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?(\.[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?)+$", RegexOptions.None, RegexTimeout))
-                    {
-                        // and individual labels can't be bigger than 63 chars
-                        throw new SpfInvalidException($"Include must be a domain name. The include value '{value}' fails");
-                    }
+                    ValidateDomainSpec(value, "include");
 
                     break;
 
