@@ -340,6 +340,30 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestWhitespaceAroundColons()
+        {
+            // Folding whitespace around colons is allowed in tag lists (RFC 6376 section 3.6.1)
+            var record = DkimCheck.ParseDkimRecord("v=DKIM1; h=sha1 : sha256; t=y : s; s= email : * ; p=" + RsaKey);
+
+            Assert.That(record.Algorithms, Is.EqualTo(new[] { "sha1", "sha256" }));
+            Assert.That((record.Flags & DkimFlags.Testing) != 0, Is.True);
+            Assert.That((record.Flags & DkimFlags.SameDomain) != 0, Is.True);
+            Assert.That(record.ServiceType, Is.EqualTo(new[] { "email", "*" }));
+        }
+
+        [Test]
+        [TestCase("v=DKIM1; 3=x; p=" + RsaKey)]      // A tag name must start with a letter (RFC 6376 section 3.2)
+        [TestCase("v=DKIM1; a-b=x; p=" + RsaKey)]    // Only letters, digits and underscores
+        [TestCase("v=DKIM1; a b=x; p=" + RsaKey)]
+        public void TestInvalidTagName(string value)
+        {
+            Assert.Throws<DkimInvalidException>(() =>
+            {
+                DkimCheck.ParseDkimRecord(value);
+            });
+        }
+
+        [Test]
         [TestCase("v=DKIM1; garbage; p=" + RsaKey)]  // Segments must be tag=value pairs
         [TestCase("v=DKIM1; p=" + RsaKey + "; garbage")]
         [TestCase("v=DKIM1;; p=" + RsaKey)]          // Empty segment in the middle of the record

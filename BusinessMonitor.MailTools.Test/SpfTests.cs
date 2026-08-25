@@ -187,6 +187,86 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestMacroWithEqualsSign()
+        {
+            // An equals sign is a valid macro delimiter, the term must be parsed
+            // as a mechanism and not as a modifier (RFC 7208 section 7.1)
+            var record = SpfCheck.ParseSpfRecord("v=spf1 exists:%{l=}.ex.example.com -all");
+
+            Assert.That(record.Modifiers, Is.Empty);
+            Assert.That(record.Directives[0].Mechanism, Is.EqualTo(SpfMechanism.Exists));
+            Assert.That(record.Directives[0].Domain, Is.EqualTo("%{l=}.ex.example.com"));
+        }
+
+        [Test]
+        [TestCase("v=spf1 =foo -all")]                      // A modifier name must start with a letter
+        [TestCase("v=spf1 +redirect=example.com -all")]     // Modifiers take no qualifier
+        [TestCase("v=spf1 1x=foo -all")]
+        public void TestInvalidModifierName(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestTrailingDotDomain()
+        {
+            // A single trailing dot is part of the domain spec grammar (RFC 7208 section 7.1)
+            Assert.DoesNotThrow(() =>
+            {
+                SpfCheck.ParseSpfRecord("v=spf1 include:_spf.example.com. -all");
+            });
+
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord("v=spf1 include:_spf.example.com.. -all");
+            });
+        }
+
+        [Test]
+        public void TestNumericTopLabel()
+        {
+            // The top label must not be all digits (RFC 7208 section 7.1)
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord("v=spf1 include:example.99 -all");
+            });
+        }
+
+        [Test]
+        public void TestMacroSlashCidr()
+        {
+            // A slash inside a macro must not break the CIDR split
+            var record = SpfCheck.ParseSpfRecord("v=spf1 a:%{d/-}.example.com/24 -all");
+
+            Assert.That(record.Directives[0].Domain, Is.EqualTo("%{d/-}.example.com"));
+            Assert.That(record.Directives[0].IP4Length, Is.EqualTo(24));
+
+            // The uppercase reverse marker is also valid
+            Assert.DoesNotThrow(() =>
+            {
+                SpfCheck.ParseSpfRecord("v=spf1 exists:%{dR}.example.com -all");
+            });
+        }
+
+        [Test]
+        [TestCase("v=spf1 ip4:192.168.001.001 -all")]       // Octets must not contain leading zeros (RFC 7208 section 12)
+        [TestCase("v=spf1 ip4:01.2.3.4 -all")]
+        [TestCase("v=spf1 ip4:0x7F.0.0.1 -all")]            // No hex or octal octets
+        [TestCase("v=spf1 ip4:015.1.1.1 -all")]
+        [TestCase("v=spf1 ip6:fe80::1%eth0 -all")]          // Zone identifiers are not part of the grammar
+        [TestCase("v=spf1 ip6:fe80::1%251 -all")]
+        public void TestInvalidAddressSyntax(string value)
+        {
+            Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord(value);
+            });
+        }
+
+        [Test]
         public void TestMacroDomains()
         {
             // Macros are valid in any domain spec
@@ -469,17 +549,18 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        public void FailingARecordDoesNotResolve()
+        public void TestARecordWithoutAddresses()
         {
+            // A domain without any addresses is not an error, the a mechanism
+            // simply never matches (RFC 7208 section 5)
             DummyResolver resolver = new DummyResolver();
             var check = new SpfCheck(resolver);
 
             resolver.AddText("nl.nl", "v=spf1 a -all");
 
-            Assert.Throws<SpfInvalidException>(() =>
-            {
-                check.GetSpfRecord("nl.nl");
-            });
+            var record = check.GetSpfRecord("nl.nl");
+
+            Assert.That(record.Directives[0].Addresses, Is.Empty);
         }
 
         [Test]

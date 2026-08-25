@@ -40,6 +40,13 @@ namespace BusinessMonitor.MailTools.Spf
                 length = parsedLength;
             }
 
+            // Reject IPv6 zone identifiers such as fe80::1%eth0 which .NET accepts
+            // but are not part of the SPF grammar (RFC 7208 section 12)
+            if (ip.IndexOf('%') != -1)
+            {
+                throw new SpfInvalidException($"Invalid IP address '{ip}' in '{value}'");
+            }
+
             IPAddress address;
             try
             {
@@ -58,9 +65,25 @@ namespace BusinessMonitor.MailTools.Spf
             }
 
             // Reject legacy shorthand such as "1.2.3" which .NET parses as 1.2.0.3, an SPF ip4 must be a full dotted quad
-            if (expectedFamily == AddressFamily.InterNetwork && ip.Split('.').Length != 4)
+            if (expectedFamily == AddressFamily.InterNetwork)
             {
-                throw new SpfInvalidException($"IPv4 address must be a full dotted quad, got '{ip}' in '{value}'");
+                var parts = ip.Split('.');
+
+                if (parts.Length != 4)
+                {
+                    throw new SpfInvalidException($"IPv4 address must be a full dotted quad, got '{ip}' in '{value}'");
+                }
+
+                // Octets must be plain decimal numbers without leading zeros (RFC 7208
+                // section 12), this also rejects the hex and octal forms .NET accepts
+                // such as 0x7F.0.0.1 and 015.1.1.1 which all start with a zero
+                foreach (var part in parts)
+                {
+                    if (part.Length > 1 && part[0] == '0')
+                    {
+                        throw new SpfInvalidException($"Invalid IPv4 octet '{part}' in '{value}'");
+                    }
+                }
             }
 
             if (length != null)

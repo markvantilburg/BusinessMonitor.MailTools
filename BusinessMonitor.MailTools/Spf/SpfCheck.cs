@@ -194,8 +194,10 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 var index = term.IndexOf('=');
 
-                // Check if term is a modifier
-                if (index != -1)
+                // Check if term is a modifier, the name must be a letter followed by
+                // letters, digits, hyphens, underscores or dots (RFC 7208 section 4.6.1),
+                // an equals sign may also appear in a mechanism macro
+                if (index != -1 && IsModifierName(term.Substring(0, index)))
                 {
                     var modifier = ParseModifier(term);
 
@@ -226,6 +228,35 @@ namespace BusinessMonitor.MailTools.Spf
         }
 
         /// <summary>
+        /// Checks whether a value is a valid modifier name, a letter followed by
+        /// letters, digits, hyphens, underscores or dots (RFC 7208 section 4.6.1)
+        /// </summary>
+        private static bool IsModifierName(string value)
+        {
+            if (value.Length == 0 || !IsLetter(value[0]))
+            {
+                return false;
+            }
+
+            for (var i = 1; i < value.Length; i++)
+            {
+                var c = value[i];
+
+                if (!IsLetter(c) && (c < '0' || c > '9') && c != '-' && c != '_' && c != '.')
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsLetter(char c)
+        {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+        }
+
+        /// <summary>
         /// Counts a DNS lookup toward the lookup limit of 10 (RFC 7208 section 4.6.4)
         /// </summary>
         private void CountLookup()
@@ -244,35 +275,66 @@ namespace BusinessMonitor.MailTools.Spf
         /// </summary>
         private static void ParseDomainCidr(SpfDirective directive, string value)
         {
-            // Split the optional CIDR lengths from the domain
-            var index = value.IndexOf('/');
+            // The CIDR lengths are taken from the end of the value so a slash inside
+            // a macro does not break the domain, such as a:%{d/-}.example.com/24
 
-            var domain = value;
+            // An IPv6 CIDR length is separated by a double slash, such as /24//64 or //64
+            var end = TryTakeCidr(value, value.Length, "//", 128, out var length6);
 
-            if (index != -1)
+            if (length6 != null)
             {
-                domain = value.Substring(0, index);
+                directive.IP6Length = length6;
+            }
 
-                var cidr = value.Substring(index);
-                var part4 = cidr;
+            end = TryTakeCidr(value, end, "/", 32, out var length4);
 
-                // An IPv6 CIDR length is separated by a double slash, such as /24//64 or //64
-                var index6 = cidr.IndexOf("//", StringComparison.Ordinal);
+            if (length4 != null)
+            {
+                directive.IP4Length = length4;
+            }
 
-                if (index6 != -1)
+            directive.Domain = value.Substring(0, end);
+        }
+
+        /// <summary>
+        /// Takes a CIDR length such as /24 or //64 from the end of a value and
+        /// returns the new end position, the length is null when there is none
+        /// </summary>
+        private static int TryTakeCidr(string value, int end, string separator, int max, out int? length)
+        {
+            length = null;
+
+            // Scan the trailing digits
+            var start = end;
+
+            while (start > 0 && value[start - 1] >= '0' && value[start - 1] <= '9')
+            {
+                start--;
+            }
+
+            if (start == end || start < separator.Length)
+            {
+                return end;
+            }
+
+            // The digits must be preceded by the separator
+            for (var i = 0; i < separator.Length; i++)
+            {
+                if (value[start - separator.Length + i] != separator[i])
                 {
-                    part4 = cidr.Substring(0, index6);
-
-                    directive.IP6Length = ParseCidrLength(cidr.Substring(index6 + 2), 128, value);
-                }
-
-                if (part4.Length > 0)
-                {
-                    directive.IP4Length = ParseCidrLength(part4.Substring(1), 32, value);
+                    return end;
                 }
             }
 
-            directive.Domain = domain;
+            // A single slash separator must not be the second slash of a double one
+            if (separator.Length == 1 && start > 1 && value[start - 2] == '/')
+            {
+                return end;
+            }
+
+            length = ParseCidrLength(value.Substring(start, end - start), max, value);
+
+            return start - separator.Length;
         }
 
         /// <summary>
@@ -311,9 +373,25 @@ namespace BusinessMonitor.MailTools.Spf
                 return;
             }
 
-            if (!DnsName.IsValidName(value) || value.IndexOf('.') == -1)
+            // A single trailing dot is allowed (RFC 7208 section 7.1)
+            var name = value;
+
+            if (name.Length > 1 && name[name.Length - 1] == '.')
+            {
+                name = name.Substring(0, name.Length - 1);
+            }
+
+            if (!DnsName.IsValidName(name) || name.IndexOf('.') == -1)
             {
                 throw new SpfInvalidException($"The {term} value '{value}' must be a domain name");
+            }
+
+            // The top label must not be all digits (RFC 7208 section 7.1)
+            var top = name.Substring(name.LastIndexOf('.') + 1);
+
+            if (top.All(x => x >= '0' && x <= '9'))
+            {
+                throw new SpfInvalidException($"The {term} value '{value}' must not end in an all numeric top label");
             }
         }
 
@@ -350,7 +428,7 @@ namespace BusinessMonitor.MailTools.Spf
                     var j = 1;
 
                     while (j < inner.Length && inner[j] >= '0' && inner[j] <= '9') j++;
-                    if (j < inner.Length && inner[j] == 'r') j++;
+                    if (j < inner.Length && (inner[j] == 'r' || inner[j] == 'R')) j++;
                     while (j < inner.Length && ".-+,/_=".IndexOf(inner[j]) != -1) j++;
 
                     if (j != inner.Length) return false;
@@ -549,16 +627,11 @@ namespace BusinessMonitor.MailTools.Spf
 
         private IPAddress[] ResolveDirective(SpfDirective directive)
         {
-            // If a mechanism lookup the addresses and return
+            // If a mechanism lookup the addresses and return, a domain without any
+            // addresses is not an error, the mechanism simply never matches
             if (directive.Mechanism == SpfMechanism.A)
             {
-                var ARecords = _resolver.GetAddressRecords(directive.Domain);
-                if (ARecords.Length < 1)
-                {
-                    throw new SpfInvalidException(string.Format("A ({0}) does not resolve", directive.Domain));
-                }
-
-                return ARecords;
+                return _resolver.GetAddressRecords(directive.Domain);
             }
 
             // Lookup all MX records and do a lookup on those

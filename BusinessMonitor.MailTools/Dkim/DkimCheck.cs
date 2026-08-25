@@ -102,9 +102,9 @@ namespace BusinessMonitor.MailTools.Dkim
                 var tag = t.Substring(0, i).Trim();
                 var val = t.Substring(i + 1).Trim();
 
-                if (tag.Length == 0)
+                if (!IsValidTagName(tag))
                 {
-                    throw new DkimInvalidException("DKIM record contains a tag without a name");
+                    throw new DkimInvalidException($"DKIM record contains an invalid tag name '{tag}'");
                 }
 
                 if (!seen.Add(tag))
@@ -131,7 +131,9 @@ namespace BusinessMonitor.MailTools.Dkim
 
                     // Acceptable hash algorithms
                     case "h":
-                        var algorithms = val.Split(':');
+                        // Whitespace around the colons is allowed, empty entries are
+                        // kept so they fail the validation below
+                        var algorithms = val.SplitTrim(':', StringSplitOptions.None);
 
                         foreach (var algorithm in algorithms)
                         {
@@ -192,7 +194,7 @@ namespace BusinessMonitor.MailTools.Dkim
 
                     // Flags
                     case "t":
-                        var flags = val.Split(':');
+                        var flags = val.SplitTrim(':');
 
                         foreach (var flag in flags)
                         {
@@ -225,6 +227,37 @@ namespace BusinessMonitor.MailTools.Dkim
 
             // Return the record
             return record;
+        }
+
+        /// <summary>
+        /// Checks whether a value is a valid tag name, a letter followed by
+        /// letters, digits or underscores (RFC 6376 section 3.2)
+        /// </summary>
+        private static bool IsValidTagName(string value)
+        {
+            if (value.Length == 0)
+            {
+                return false;
+            }
+
+            var first = value[0];
+
+            if ((first < 'a' || first > 'z') && (first < 'A' || first > 'Z'))
+            {
+                return false;
+            }
+
+            for (var i = 1; i < value.Length; i++)
+            {
+                var c = value[i];
+
+                if ((c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '_')
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
