@@ -33,7 +33,7 @@ namespace BusinessMonitor.MailTools.Spf
         public SpfMechanism Mechanism { get; set; }
 
         /// <summary>
-        /// Gets the include domain for an include mechanism
+        /// Gets the include domain for an include mechanism, without a trailing dot
         /// </summary>
         public string? Include { get; set; }
 
@@ -53,7 +53,7 @@ namespace BusinessMonitor.MailTools.Spf
         public SpfAddress? IP6 { get; set; }
 
         /// <summary>
-        /// Gets the domain for the A, MX, Ptr or Exists mechanism
+        /// Gets the domain for the A, MX, Ptr or Exists mechanism, without a trailing dot
         /// </summary>
         public string? Domain { get; set; }
 

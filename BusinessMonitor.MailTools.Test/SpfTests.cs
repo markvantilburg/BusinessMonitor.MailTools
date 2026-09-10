@@ -214,16 +214,46 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestTrailingDotDomain()
         {
-            // A single trailing dot is part of the domain spec grammar (RFC 7208 section 7.1)
-            Assert.DoesNotThrow(() =>
-            {
-                SpfCheck.ParseSpfRecord("v=spf1 include:_spf.example.com. -all");
-            });
+            // A single trailing dot is part of the domain spec grammar (RFC 7208 section 7.1), it is
+            // removed from the parsed value so names are exposed and resolved uniformly
+            var record = SpfCheck.ParseSpfRecord("v=spf1 include:_spf.example.com. a:a.example.com./24 mx:mx.example.com. exists:%{i}.example.com. ptr:ptr.example.com. redirect=r.example.com. exp=e.example.com.");
+
+            Assert.That(record.Directives[0].Include, Is.EqualTo("_spf.example.com"));
+            Assert.That(record.Directives[1].Domain, Is.EqualTo("a.example.com"));
+            Assert.That(record.Directives[1].IP4Length, Is.EqualTo(24));
+            Assert.That(record.Directives[2].Domain, Is.EqualTo("mx.example.com"));
+            Assert.That(record.Directives[3].Domain, Is.EqualTo("%{i}.example.com."), "macro strings are kept as written");
+            Assert.That(record.Directives[4].Domain, Is.EqualTo("ptr.example.com"));
+            Assert.That(record.Modifiers[0].Value, Is.EqualTo("r.example.com"));
+            Assert.That(record.Modifiers[1].Value, Is.EqualTo("e.example.com"));
 
             Assert.Throws<SpfInvalidException>(() =>
             {
                 SpfCheck.ParseSpfRecord("v=spf1 include:_spf.example.com.. -all");
             });
+        }
+
+        [Test]
+        public void TestTrailingDotTargetsAreResolvedWithoutDot()
+        {
+            var resolver = new DummyResolver();
+            resolver.AddText("businessmonitor.nl", "v=spf1 include:one.businessmonitor.nl. a:a.businessmonitor.nl. mx:mx.businessmonitor.nl. redirect=two.businessmonitor.nl.");
+            resolver.AddText("one.businessmonitor.nl", "v=spf1 ip4:192.0.2.1 -all");
+            resolver.AddText("two.businessmonitor.nl", "v=spf1 ip4:192.0.2.2 -all");
+            resolver.AddAddress("a.businessmonitor.nl", IPAddress.Parse("192.0.2.3"));
+            resolver.AddMail("mx.businessmonitor.nl", "mail.businessmonitor.nl.");
+            resolver.AddAddress("mail.businessmonitor.nl", IPAddress.Parse("192.0.2.4"));
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.That(record.Directives[0].Included, Is.Not.Null);
+            Assert.That(record.Directives[1].Addresses, Is.EqualTo(new[] { IPAddress.Parse("192.0.2.3") }));
+            Assert.That(record.Directives[2].Addresses, Is.EqualTo(new[] { IPAddress.Parse("192.0.2.4") }));
+            Assert.That(record.Modifiers[0].Included, Is.Not.Null);
+            Assert.That(resolver.TextLookups, Is.EqualTo(new[] { "businessmonitor.nl", "one.businessmonitor.nl", "two.businessmonitor.nl" }));
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "a.businessmonitor.nl", "mail.businessmonitor.nl" }));
+            Assert.That(resolver.MailLookups, Is.EqualTo(new[] { "mx.businessmonitor.nl" }));
         }
 
         [Test]

@@ -224,7 +224,7 @@ namespace BusinessMonitor.MailTools.Spf
                             throw new SpfInvalidException($"SPF record contains more than one {modifier.Name.ToLowerInvariant()} modifier");
                         }
 
-                        ValidateDomainSpec(modifier.Value, modifier.Name.ToLowerInvariant());
+                        modifier.Value = ValidateDomainSpec(modifier.Value, modifier.Name.ToLowerInvariant());
                     }
 
                     modifiers.Add(modifier);
@@ -360,7 +360,8 @@ namespace BusinessMonitor.MailTools.Spf
         /// Validates the domain of a mechanism or modifier, the value must be a valid
         /// DNS name with at least two labels or a valid macro string (RFC 7208 section 7)
         /// </summary>
-        private static void ValidateDomainSpec(string value, string term)
+        /// <returns>The domain without its trailing dot, a macro string is returned as is</returns>
+        private static string ValidateDomainSpec(string value, string term)
         {
             // A domain with macros can only be expanded during evaluation
             if (value.IndexOf('%') != -1)
@@ -370,7 +371,7 @@ namespace BusinessMonitor.MailTools.Spf
                     throw new SpfInvalidException($"The {term} value '{value.Sanitize()}' contains an invalid macro");
                 }
 
-                return;
+                return value;
             }
 
             // A single trailing dot is allowed (RFC 7208 section 7.1)
@@ -393,6 +394,10 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 throw new SpfInvalidException($"The {term} value '{value.Sanitize()}' must not end in an all numeric top label");
             }
+
+            // The trailing dot is removed so the name is passed to the resolver and exposed the same
+            // way as every other name in the library
+            return name;
         }
 
         /// <summary>
@@ -531,10 +536,7 @@ namespace BusinessMonitor.MailTools.Spf
             switch (directive.Mechanism)
             {
                 case SpfMechanism.Include:
-                    directive.Include = value;
-
-                    // do a sanity check on the domain name to make sure its legal
-                    ValidateDomainSpec(value, "include");
+                    directive.Include = ValidateDomainSpec(value, "include");
 
                     break;
 
@@ -572,7 +574,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                     if (!string.IsNullOrEmpty(directive.Domain))
                     {
-                        ValidateDomainSpec(directive.Domain, mechanism.ToLowerInvariant());
+                        directive.Domain = ValidateDomainSpec(directive.Domain, mechanism.ToLowerInvariant());
                     }
 
                     break;
@@ -593,8 +595,7 @@ namespace BusinessMonitor.MailTools.Spf
                         throw new SpfInvalidException("The exists mechanism requires a domain");
                     }
 
-                    ValidateDomainSpec(value, "exists");
-                    directive.Domain = value;
+                    directive.Domain = ValidateDomainSpec(value, "exists");
 
                     break;
 
@@ -602,8 +603,7 @@ namespace BusinessMonitor.MailTools.Spf
                     // The ptr mechanism takes an optional domain (RFC 7208 section 5.5)
                     if (value.Length > 0)
                     {
-                        ValidateDomainSpec(value, "ptr");
-                        directive.Domain = value;
+                        directive.Domain = ValidateDomainSpec(value, "ptr");
                     }
 
                     break;
