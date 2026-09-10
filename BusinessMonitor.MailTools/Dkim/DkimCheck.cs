@@ -35,7 +35,7 @@ namespace BusinessMonitor.MailTools.Dkim
         /// <exception cref="DkimInvalidException">The DKIM record was invalid</exception>
         public DkimRecord GetDkimRecord(string domain, string selector)
         {
-            DnsName.ValidateDomain(domain, nameof(domain));
+            domain = DnsName.ValidateDomain(domain, nameof(domain));
             DnsName.ValidateSelector(selector, nameof(selector));
 
             var name = selector + "._domainkey." + domain;
@@ -45,7 +45,7 @@ namespace BusinessMonitor.MailTools.Dkim
                 throw new ArgumentException("Selector and domain combined exceed the maximum DNS name length of 253 characters", nameof(selector));
             }
 
-            var records = _resolver.GetTextRecords(name);
+            var records = _resolver.GetTextRecords(name) ?? Array.Empty<string>();
 
             // Find the DKIM record
             var dkimRecords = records.Where(LooksLikeDkimRecord).ToList();

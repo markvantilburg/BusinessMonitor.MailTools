@@ -1,4 +1,4 @@
-using BusinessMonitor.MailTools.Util;
+﻿using BusinessMonitor.MailTools.Util;
 using NUnit.Framework;
 using System;
 using System.Linq;
@@ -138,6 +138,59 @@ namespace BusinessMonitor.MailTools.Test
             {
                 DnsName.ValidateSelector("sel ector", "selector");
             });
+        }
+
+        [Test]
+        public void TestValidateDomainTrailingDot()
+        {
+            // The absolute form is accepted and the trailing dot removed
+            Assert.That(DnsName.ValidateDomain("example.com.", "domain"), Is.EqualTo("example.com"));
+            Assert.That(DnsName.ValidateDomain("example.com", "domain"), Is.EqualTo("example.com"));
+
+            // The length limit applies to the name without the dot
+            Assert.That(DnsName.ValidateDomain(new string('a', 63) + "." + new string('b', 63) + "." + new string('c', 63) + "." + new string('d', 61) + ".", "domain").Length, Is.EqualTo(253));
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                DnsName.ValidateDomain("example.com..", "domain");
+            });
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                DnsName.ValidateDomain(".", "domain");
+            });
+        }
+
+        [TestCase("mail.example.com", "mail.example.com")]
+        [TestCase("mail.example.com.", "mail.example.com")]   // Single trailing dot is removed
+        [TestCase("_spf.example.com", "_spf.example.com")]
+        public void TestTryNormalizeHostValid(string value, string expected)
+        {
+            Assert.That(DnsName.TryNormalizeHost(value, out var host), Is.True);
+            Assert.That(host, Is.EqualTo(expected));
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase(".")]
+        [TestCase("mail.example.com..")]
+        [TestCase("mail example.com")]
+        [TestCase("mail.example.com&type=TXT")]
+        [TestCase("-mail.example.com")]
+        [TestCase("mail\u0000.example.com")]
+        [TestCase("mail.example.com/x")]
+        public void TestTryNormalizeHostInvalid(string value)
+        {
+            Assert.That(DnsName.TryNormalizeHost(value, out _), Is.False);
+        }
+
+        [TestCase(".", true)]
+        [TestCase("", true)]
+        [TestCase("mail.example.com.", false)]
+        [TestCase(null, false)]
+        public void TestIsNullMx(string value, bool expected)
+        {
+            Assert.That(DnsName.IsNullMx(value), Is.EqualTo(expected));
         }
     }
 }

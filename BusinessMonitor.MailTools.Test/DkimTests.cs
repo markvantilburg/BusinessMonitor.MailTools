@@ -123,6 +123,36 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestTrailingDotDomain()
+        {
+            // The absolute form of a domain is accepted and resolved without the trailing dot
+            var resolver = new DummyResolver("test._domainkey.businessmonitor.nl", "v=DKIM1; p=" + RsaKey);
+
+            var check = new DkimCheck(resolver);
+            var record = check.GetDkimRecord("businessmonitor.nl.", "test");
+
+            Assert.That(record.PublicKey, Is.EqualTo(RsaKey));
+
+            // Only a single trailing dot is allowed
+            Assert.Throws<ArgumentException>(() =>
+            {
+                check.GetDkimRecord("businessmonitor.nl..", "test");
+            });
+        }
+
+        [Test]
+        public void TestNullResolverResult()
+        {
+            var resolver = new DummyResolver { ReturnNullWhenEmpty = true };
+            var check = new DkimCheck(resolver);
+
+            Assert.Throws<DkimNotFoundException>(() =>
+            {
+                check.GetDkimRecord("example.com", "test");
+            });
+        }
+
+        [Test]
         public void TestRevoked()
         {
             var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=");
@@ -143,7 +173,6 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("busi ness.nl", "default")]
         [TestCase("business..nl", "default")]
         [TestCase(".business.nl", "default")]
-        [TestCase("business.nl.", "default")]
         public void TestInvalidQueryInput(string domain, string selector)
         {
             var check = new DkimCheck(new DummyResolver());

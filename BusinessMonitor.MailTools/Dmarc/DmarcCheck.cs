@@ -33,20 +33,19 @@ namespace BusinessMonitor.MailTools.Dmarc
         /// <returns>The parsed DMARC record</returns>
         /// <exception cref="DmarcNotFoundException">No DMARC record was found for the domain</exception>
         /// <exception cref="DmarcInvalidException">The DMARC record was invalid</exception>
+        /// <exception cref="ArgumentException">The domain is not a valid DNS name</exception>
         public DmarcRecord GetDmarcRecord(string domain)
         {
-            if (domain == null)
-            {
-                throw new ArgumentNullException(nameof(domain));
-            }
-
-            if (domain.Length > 253)
-            {
-                throw new ArgumentException("Domain must not exceed 253 characters", nameof(domain));
-            }
+            domain = DnsName.ValidateDomain(domain, nameof(domain));
 
             var name = "_dmarc." + domain;
-            var records = _resolver.GetTextRecords(name);
+
+            if (name.Length > 253)
+            {
+                throw new ArgumentException("Domain exceeds the maximum DNS name length of 253 characters with the _dmarc prefix", nameof(domain));
+            }
+
+            var records = _resolver.GetTextRecords(name) ?? Array.Empty<string>();
 
             // Find the DMARC record
             var record = records.FirstOrDefault(x => x.StartsWith("v=DMARC1"));

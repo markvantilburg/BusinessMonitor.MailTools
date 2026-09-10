@@ -223,6 +223,29 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestTrailingDotDomain()
+        {
+            var resolver = new DummyResolver("default._bimi.businessmonitor.nl", "v=BIMI1; l=https://businessmonitor.nl/logo.svg");
+
+            var check = new BimiCheck(resolver);
+            var record = check.GetBimiRecord("businessmonitor.nl.");
+
+            Assert.That(record.Location, Is.EqualTo("https://businessmonitor.nl/logo.svg"));
+        }
+
+        [Test]
+        public void TestNullResolverResult()
+        {
+            var resolver = new DummyResolver { ReturnNullWhenEmpty = true };
+            var check = new BimiCheck(resolver);
+
+            Assert.Throws<BimiNotFoundException>(() =>
+            {
+                check.GetBimiRecord("example.com");
+            });
+        }
+
+        [Test]
         public void TestLookups()
         {
             var resolver = new DnsResolver(IPAddress.Parse("1.1.1.1")); // Cloudflare DNS

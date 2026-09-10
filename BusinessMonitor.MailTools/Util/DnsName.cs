@@ -47,13 +47,20 @@ namespace BusinessMonitor.MailTools.Util
         }
 
         /// <summary>
-        /// Validates a caller-provided domain name, throws when it is not a valid DNS name
+        /// Validates a caller-provided domain name, throws when it is not a valid DNS name.
+        /// A single trailing dot, the absolute (FQDN) form, is accepted and removed
         /// </summary>
-        internal static void ValidateDomain(string domain, string paramName)
+        /// <returns>The domain without a trailing dot</returns>
+        internal static string ValidateDomain(string domain, string paramName)
         {
             if (domain == null)
             {
                 throw new ArgumentNullException(paramName);
+            }
+
+            if (domain.Length > 1 && domain[domain.Length - 1] == '.')
+            {
+                domain = domain.Substring(0, domain.Length - 1);
             }
 
             if (domain.Length > 253)
@@ -65,6 +72,33 @@ namespace BusinessMonitor.MailTools.Util
             {
                 throw new ArgumentException($"Domain '{domain.Sanitize()}' is not a valid DNS name", paramName);
             }
+
+            return domain;
+        }
+
+        /// <summary>
+        /// Checks whether a host name returned by DNS is a null MX target (RFC 7505), the root name
+        /// </summary>
+        internal static bool IsNullMx(string value)
+        {
+            return value != null && (value.Length == 0 || value == ".");
+        }
+
+        /// <summary>
+        /// Normalizes a host name returned by DNS, such as an MX exchange, before it is resolved again.
+        /// A single trailing dot is removed. Returns false when the value is not a valid DNS name,
+        /// such a name must not be passed back to the resolver.
+        /// </summary>
+        internal static bool TryNormalizeHost(string value, out string host)
+        {
+            host = value ?? string.Empty;
+
+            if (host.Length > 1 && host[host.Length - 1] == '.')
+            {
+                host = host.Substring(0, host.Length - 1);
+            }
+
+            return IsValidName(host);
         }
 
         /// <summary>

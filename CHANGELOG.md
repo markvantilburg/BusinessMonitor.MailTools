@@ -6,6 +6,9 @@
 - [MX] Limit the number of MX records resolved per domain to 10, an `MxException` is thrown when exceeded (in line with RFC 7208 section 4.6.4 and the existing SPF `mx` limit).
 - [MX] Detect non-routable addresses hidden in IPv6 transition addresses, 6to4 (`2002::/16`), Teredo (`2001::/32`) and NAT64 (`64:ff9b::/96`) are checked on the IPv4 address they embed, IPv4-compatible addresses (`::/96`) are treated as non-routable.
 - Exception messages that quote DNS record content now replace control and non-ASCII characters and truncate long values, see the README note on exception messages.
+- [SPF] [DMARC] [MX] `GetSpfRecord`, `GetDmarcRecord` and `ValidateMxRecords` now validate the domain as a DNS name and throw `ArgumentException` for anything else, in line with the DKIM and BIMI checks, so malformed input can no longer reach the resolver. A single trailing dot (the absolute form, `example.com.`) is accepted by all checks and removed before the lookup, this was previously rejected by the DKIM and BIMI checks.
+- [SPF] [MX] MX hosts returned by DNS are validated before they are resolved again, a single trailing dot is removed and a null MX (RFC 7505) is skipped. An invalid host throws `SpfException` for the SPF `mx` mechanism and is reported in `InvalidMxRecords` by the MX validator.
+- A resolver returning `null` instead of an empty array is now treated as an empty result by all checks.
 
 ## v1.1.0
 - [SPF] Detect duplicate IP4/IP6 mechanisms in SPF records [Issue:#13](https://github.com/markvantilburg/BusinessMonitor.MailTools/issues/13)

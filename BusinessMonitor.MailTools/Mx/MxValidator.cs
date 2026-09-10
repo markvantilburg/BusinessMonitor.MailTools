@@ -38,8 +38,11 @@ namespace BusinessMonitor.MailTools.Mx
         }
 
         /// <exception cref="MxException">The domain has more than 10 MX records</exception>
+        /// <exception cref="ArgumentException">The domain is not a valid DNS name</exception>
         public MxValidationResult ValidateMxRecords(string domain)
         {
+            domain = DnsName.ValidateDomain(domain, nameof(domain));
+
             var result = new MxValidationResult();
             var mxRecords = _resolver.GetMailRecords(domain);
             if (mxRecords == null || mxRecords.Length == 0)
@@ -56,7 +59,21 @@ namespace BusinessMonitor.MailTools.Mx
             result.HasMxRecords = true;
             foreach (var mxRecord in mxRecords)
             {
-                IPAddress[] ipAddresses = _resolver.GetAddressRecords(mxRecord);
+                // A null MX (RFC 7505) has no host to resolve
+                if (DnsName.IsNullMx(mxRecord))
+                {
+                    continue;
+                }
+
+                // The MX host comes from DNS, a host that is not a valid name can never
+                // deliver mail and is not passed back to the resolver
+                if (!DnsName.TryNormalizeHost(mxRecord, out var host))
+                {
+                    result.InvalidMxRecords.Add(mxRecord);
+                    continue;
+                }
+
+                IPAddress[] ipAddresses = _resolver.GetAddressRecords(host);
                 if (ipAddresses != null && ipAddresses.Any(IPAddressHelper.IsNonRoutable))
                 {
                     result.InvalidMxRecords.Add(mxRecord);

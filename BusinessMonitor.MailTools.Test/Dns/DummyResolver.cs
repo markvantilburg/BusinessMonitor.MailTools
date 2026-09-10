@@ -13,7 +13,31 @@ namespace BusinessMonitor.MailTools.Test.Dns
         public DummyResolver()
         {
             _records = new List<Record>();
+            TextLookups = new List<string>();
+            AddressLookups = new List<string>();
+            MailLookups = new List<string>();
         }
+
+        /// <summary>
+        /// The names passed to GetTextRecords, in order
+        /// </summary>
+        public List<string> TextLookups { get; }
+
+        /// <summary>
+        /// The names passed to GetAddressRecords, in order
+        /// </summary>
+        public List<string> AddressLookups { get; }
+
+        /// <summary>
+        /// The names passed to GetMailRecords, in order
+        /// </summary>
+        public List<string> MailLookups { get; }
+
+        /// <summary>
+        /// When set, a lookup without results returns null instead of an empty array,
+        /// mimicking resolver implementations that do so
+        /// </summary>
+        public bool ReturnNullWhenEmpty { get; set; }
 
         public DummyResolver(string domain, string value) : this()
         {
@@ -50,18 +74,28 @@ namespace BusinessMonitor.MailTools.Test.Dns
 
         public string[] GetTextRecords(string domain)
         {
-            return _records.Where(x => x.Domain == domain && x.Type == DnsType.TXT).Select(x => x.Value).ToArray();
+            TextLookups.Add(domain);
+
+            return NullWhenEmpty(_records.Where(x => x.Domain == domain && x.Type == DnsType.TXT).Select(x => x.Value).ToArray());
         }
 
         public IPAddress[] GetAddressRecords(string domain)
         {
-            return _records.Where(x => x.Domain == domain && x.Type == DnsType.A).Select(x => x.Address).ToArray();
+            AddressLookups.Add(domain);
 
+            return NullWhenEmpty(_records.Where(x => x.Domain == domain && x.Type == DnsType.A).Select(x => x.Address).ToArray());
         }
 
         public string[] GetMailRecords(string domain)
         {
-            return _records.Where(x => x.Domain == domain && x.Type == DnsType.MX).Select(x => x.Value).ToArray();
+            MailLookups.Add(domain);
+
+            return NullWhenEmpty(_records.Where(x => x.Domain == domain && x.Type == DnsType.MX).Select(x => x.Value).ToArray());
+        }
+
+        private T[] NullWhenEmpty<T>(T[] result)
+        {
+            return ReturnNullWhenEmpty && result.Length == 0 ? null : result;
         }
 
         private class Record

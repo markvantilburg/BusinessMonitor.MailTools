@@ -119,6 +119,47 @@ namespace BusinessMonitor.MailTools.Test
             });
         }
 
+        // Domains that could alter the DNS query
+        [TestCase("busi ness.nl")]
+        [TestCase("business..nl")]
+        [TestCase(".business.nl")]
+        [TestCase("business.nl..")]
+        [TestCase("busi\u0000ness.nl")]
+        [TestCase("business.nl&type=A")]
+        [TestCase("")]
+        public void TestInvalidQueryInput(string domain)
+        {
+            var check = new DmarcCheck(new DummyResolver());
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                check.GetDmarcRecord(domain);
+            });
+        }
+
+        [Test]
+        public void TestTrailingDotDomain()
+        {
+            var resolver = new DummyResolver("_dmarc.businessmonitor.nl", "v=DMARC1; p=reject");
+
+            var check = new DmarcCheck(resolver);
+            var record = check.GetDmarcRecord("businessmonitor.nl.");
+
+            Assert.That(record.Policy, Is.EqualTo(ReceiverPolicy.Reject));
+        }
+
+        [Test]
+        public void TestNullResolverResult()
+        {
+            var resolver = new DummyResolver { ReturnNullWhenEmpty = true };
+            var check = new DmarcCheck(resolver);
+
+            Assert.Throws<DmarcNotFoundException>(() =>
+            {
+                check.GetDmarcRecord("businessmonitor.nl");
+            });
+        }
+
         [Test]
         public void TestLookups()
         {

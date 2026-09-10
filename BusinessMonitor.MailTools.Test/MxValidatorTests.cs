@@ -5,7 +5,7 @@ using System.Net;
 using BusinessMonitor.MailTools.Mx;
 using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
-using System.Linq;
+using BusinessMonitor.MailTools.Test.Dns;
 
 namespace BusinessMonitor.MailTools.Test
 {
@@ -90,30 +90,35 @@ namespace BusinessMonitor.MailTools.Test
         public void ValidateMxRecords_WithTooManyMxRecords_ThrowsMxException()
         {
             // Arrange
-            var mockResolver = new Mock<IResolver>();
-            mockResolver.Setup(r => r.GetMailRecords("many.nl"))
-                .Returns(Enumerable.Range(1, 11).Select(i => $"mx{i}.many.nl").ToArray());
+            var resolver = new DummyResolver();
 
-            var validator = new MxValidator(mockResolver.Object);
+            for (var i = 1; i <= 11; i++)
+            {
+                resolver.AddMail("many.nl", $"mx{i}.many.nl");
+            }
+
+            var validator = new MxValidator(resolver);
 
             // Act & Assert
             Assert.Throws<MxException>(() => validator.ValidateMxRecords("many.nl"));
 
             // No address lookups may be done when the limit is exceeded
-            mockResolver.Verify(r => r.GetAddressRecords(It.IsAny<string>()), Times.Never);
+            Assert.That(resolver.AddressLookups, Is.Empty);
         }
 
         [Test]
         public void ValidateMxRecords_WithMaxMxRecords_ResolvesAll()
         {
             // Arrange
-            var mockResolver = new Mock<IResolver>();
-            mockResolver.Setup(r => r.GetMailRecords("ten.nl"))
-                .Returns(Enumerable.Range(1, 10).Select(i => $"mx{i}.ten.nl").ToArray());
-            mockResolver.Setup(r => r.GetAddressRecords(It.IsAny<string>()))
-                .Returns(new[] { IPAddress.Parse("222.222.1.1") });
+            var resolver = new DummyResolver();
 
-            var validator = new MxValidator(mockResolver.Object);
+            for (var i = 1; i <= 10; i++)
+            {
+                resolver.AddMail("ten.nl", $"mx{i}.ten.nl");
+                resolver.AddAddress($"mx{i}.ten.nl", IPAddress.Parse("222.222.1.1"));
+            }
+
+            var validator = new MxValidator(resolver);
 
             // Act
             var result = validator.ValidateMxRecords("ten.nl");
@@ -121,7 +126,107 @@ namespace BusinessMonitor.MailTools.Test
             // Assert
             Assert.That(result.HasMxRecords, Is.True);
             Assert.That(result.InvalidMxRecords, Is.Empty);
-            mockResolver.Verify(r => r.GetAddressRecords(It.IsAny<string>()), Times.Exactly(10));
+            Assert.That(resolver.AddressLookups, Has.Count.EqualTo(10));
+        }
+
+        // Domains that could alter the DNS query
+        [TestCase("busi ness.nl")]
+        [TestCase("business..nl")]
+        [TestCase(".business.nl")]
+        [TestCase("business.nl..")]
+        [TestCase("busi\u0000ness.nl")]
+        [TestCase("business.nl&type=A")]
+        [TestCase("")]
+        public void ValidateMxRecords_WithInvalidDomain_ThrowsArgumentException(string domain)
+        {
+            var resolver = new DummyResolver();
+            var validator = new MxValidator(resolver);
+
+            Assert.Throws<ArgumentException>(() => validator.ValidateMxRecords(domain));
+
+            Assert.That(resolver.MailLookups, Is.Empty);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithTrailingDotDomain_ResolvesWithoutDot()
+        {
+            var resolver = new DummyResolver();
+            resolver.AddMail("example.com", "mail.example.com");
+            resolver.AddAddress("mail.example.com", IPAddress.Parse("1.1.1.1"));
+
+            var validator = new MxValidator(resolver);
+
+            var result = validator.ValidateMxRecords("example.com.");
+
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(resolver.MailLookups, Is.EqualTo(new[] { "example.com" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithNullDomain_ThrowsArgumentNullException()
+        {
+            var validator = new MxValidator(new DummyResolver());
+
+            Assert.Throws<ArgumentNullException>(() => validator.ValidateMxRecords(null));
+        }
+
+        [TestCase("mail.example.com&type=TXT")]
+        [TestCase("mail example.com")]
+        [TestCase("mail..example.com")]
+        [TestCase("-mail.example.com")]
+        [TestCase("mail.example.com..")]
+        [TestCase("mail\u0000.example.com")]
+        public void ValidateMxRecords_WithInvalidMxHost_MarksRecordInvalidWithoutResolving(string mxHost)
+        {
+            // Arrange
+            var resolver = new DummyResolver();
+            resolver.AddMail("hostile.nl", mxHost);
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("hostile.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { mxHost }));
+            Assert.That(resolver.AddressLookups, Is.Empty);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithTrailingDotMxHost_ResolvesWithoutDot()
+        {
+            // Arrange
+            var resolver = new DummyResolver();
+            resolver.AddMail("dot.nl", "mail.dot.nl.");
+            resolver.AddAddress("mail.dot.nl", IPAddress.Parse("127.0.0.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("dot.nl");
+
+            // Assert
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mail.dot.nl." }));
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "mail.dot.nl" }));
+        }
+
+        [TestCase(".")]
+        [TestCase("")]
+        public void ValidateMxRecords_WithNullMx_SkipsRecord(string mxHost)
+        {
+            // A null MX (RFC 7505) states the domain accepts no mail, there is nothing to resolve
+            var resolver = new DummyResolver();
+            resolver.AddMail("nomail.nl", mxHost);
+
+            var validator = new MxValidator(resolver);
+
+            var result = validator.ValidateMxRecords("nomail.nl");
+
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(resolver.AddressLookups, Is.Empty);
         }
 
         [Test]

@@ -778,6 +778,103 @@ namespace BusinessMonitor.MailTools.Test
             });
         }
 
+        // Domains that could alter the DNS query
+        [TestCase("busi ness.nl")]
+        [TestCase("business..nl")]
+        [TestCase(".business.nl")]
+        [TestCase("business.nl..")]
+        [TestCase("-business.nl")]
+        [TestCase("busi\u0000ness.nl")]
+        [TestCase("business.nl/txt")]
+        [TestCase("business.nl&type=A")]
+        [TestCase("")]
+        public void TestInvalidQueryInput(string domain)
+        {
+            var check = new SpfCheck(new DummyResolver());
+
+            Assert.Throws<ArgumentException>(() =>
+            {
+                check.GetSpfRecord(domain);
+            });
+        }
+
+        [Test]
+        public void TestTrailingDotDomain2()
+        {
+            var resolver = new DummyResolver("businessmonitor.nl", "v=spf1 ip4:192.0.2.1 -all");
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl.");
+
+            Assert.That(record.Directives, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public void TestMxHostFromDnsIsValidatedBeforeResolving()
+        {
+            var resolver = new DummyResolver();
+            resolver.AddText("businessmonitor.nl", "v=spf1 mx -all");
+            resolver.AddMail("businessmonitor.nl", "mail.businessmonitor.nl&type=TXT");
+
+            var check = new SpfCheck(resolver);
+
+            Assert.Throws<SpfException>(() =>
+            {
+                check.GetSpfRecord("businessmonitor.nl");
+            });
+
+            // The hostile host must never reach the resolver
+            Assert.That(resolver.AddressLookups, Is.Empty);
+        }
+
+        [Test]
+        public void TestMxHostTrailingDotIsNormalized()
+        {
+            var resolver = new DummyResolver();
+            resolver.AddText("businessmonitor.nl", "v=spf1 mx -all");
+            resolver.AddMail("businessmonitor.nl", "mail.businessmonitor.nl.");
+            resolver.AddAddress("mail.businessmonitor.nl", IPAddress.Parse("192.0.2.1"));
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.That(record.Directives[0].Addresses, Is.EqualTo(new[] { IPAddress.Parse("192.0.2.1") }));
+        }
+
+        [Test]
+        public void TestNullMxIsSkipped()
+        {
+            var resolver = new DummyResolver();
+            resolver.AddText("businessmonitor.nl", "v=spf1 mx -all");
+            resolver.AddMail("businessmonitor.nl", ".");
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.That(record.Directives[0].Addresses, Is.Empty);
+            Assert.That(resolver.AddressLookups, Is.Empty);
+        }
+
+        [Test]
+        public void TestNullResolverResults()
+        {
+            // A resolver returning null instead of an empty array must not crash the check
+            var resolver = new DummyResolver { ReturnNullWhenEmpty = true };
+            var check = new SpfCheck(resolver);
+
+            Assert.Throws<SpfNotFoundException>(() =>
+            {
+                check.GetSpfRecord("businessmonitor.nl");
+            });
+
+            resolver.AddText("businessmonitor.nl", "v=spf1 a mx -all");
+
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.That(record.Directives[0].Addresses, Is.Empty);
+            Assert.That(record.Directives[1].Addresses, Is.Empty);
+        }
+
         [Test]
         public void TestExceptionMessageDoesNotEchoControlCharacters()
         {

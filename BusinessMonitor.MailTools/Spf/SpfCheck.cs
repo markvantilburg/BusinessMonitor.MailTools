@@ -53,17 +53,10 @@ namespace BusinessMonitor.MailTools.Spf
         /// <exception cref="SpfNotFoundException">No SPF record was found for the domain</exception>
         /// <exception cref="SpfInvalidException">The SPF record was invalid</exception>
         /// <exception cref="SpfLookupException">An include lookup failed, see inner exception</exception>
+        /// <exception cref="ArgumentException">The domain is not a valid DNS name</exception>
         public SpfRecord GetSpfRecord(string domain)
         {
-            if (domain == null)
-            {
-                throw new ArgumentNullException(nameof(domain));
-            }
-
-            if (domain.Length > 253)
-            {
-                throw new ArgumentException("Domain must not exceed 253 characters", nameof(domain));
-            }
+            domain = DnsName.ValidateDomain(domain, nameof(domain));
 
             _lookups = 0;
 
@@ -72,7 +65,7 @@ namespace BusinessMonitor.MailTools.Spf
 
         private SpfRecord GetRecord(string domain)
         {
-            var records = _resolver.GetTextRecords(domain);
+            var records = _resolver.GetTextRecords(domain) ?? Array.Empty<string>();
 
             // Find the SPF record
             var record = records.FirstOrDefault(IsSpfRecord);
@@ -631,11 +624,11 @@ namespace BusinessMonitor.MailTools.Spf
             // addresses is not an error, the mechanism simply never matches
             if (directive.Mechanism == SpfMechanism.A)
             {
-                return _resolver.GetAddressRecords(directive.Domain);
+                return _resolver.GetAddressRecords(directive.Domain) ?? Array.Empty<IPAddress>();
             }
 
             // Lookup all MX records and do a lookup on those
-            var records = _resolver.GetMailRecords(directive.Domain);
+            var records = _resolver.GetMailRecords(directive.Domain) ?? Array.Empty<string>();
 
             if (records.Length > 10)
             {
@@ -645,7 +638,19 @@ namespace BusinessMonitor.MailTools.Spf
             var addresses = new List<IPAddress>();
             foreach (var record in records)
             {
-                addresses.AddRange(_resolver.GetAddressRecords(record));
+                // A null MX (RFC 7505) has no host to resolve
+                if (DnsName.IsNullMx(record))
+                {
+                    continue;
+                }
+
+                // The MX host comes from DNS and is only passed back to the resolver when it is a valid name
+                if (!DnsName.TryNormalizeHost(record, out var host))
+                {
+                    throw new SpfException($"MX record of '{directive.Domain.Sanitize()}' contains an invalid host name '{record.Sanitize()}'");
+                }
+
+                addresses.AddRange(_resolver.GetAddressRecords(host) ?? Array.Empty<IPAddress>());
             }
 
             return addresses.ToArray();
