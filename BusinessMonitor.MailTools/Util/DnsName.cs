@@ -9,8 +9,9 @@ namespace BusinessMonitor.MailTools.Util
     {
         private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(200);
 
+        // \z rather than $, in .NET $ also matches before a trailing newline so "abc\n" would be a valid label
         private static readonly Regex LabelRegex = new(
-            @"^[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?$",
+            @"^[a-zA-Z0-9_]([a-zA-Z0-9_\-]{0,61}[a-zA-Z0-9_])?\z",
             RegexOptions.None,
             RegexTimeout);
 

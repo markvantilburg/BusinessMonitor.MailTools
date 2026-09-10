@@ -31,6 +31,10 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("a/b")]
         [TestCase("a\0b")]
         [TestCase("äbc")]      // No non-ASCII characters
+        [TestCase("abc\n")]   // A trailing newline is not part of a label, $ in a .NET regex would accept it
+        [TestCase("abc\r\n")]
+        [TestCase("\nabc")]
+        [TestCase("a\nb")]
         public void TestInvalidLabel(string value)
         {
             Assert.That(DnsName.IsValidLabel(value), Is.False);
