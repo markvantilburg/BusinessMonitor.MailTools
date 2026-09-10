@@ -9,6 +9,7 @@
 - [SPF] [DMARC] [MX] `GetSpfRecord`, `GetDmarcRecord` and `ValidateMxRecords` now validate the domain as a DNS name and throw `ArgumentException` for anything else, in line with the DKIM and BIMI checks, so malformed input can no longer reach the resolver. A single trailing dot (the absolute form, `example.com.`) is accepted by all checks and removed before the lookup, this was previously rejected by the DKIM and BIMI checks.
 - [SPF] [MX] MX hosts returned by DNS are validated before they are resolved again, a single trailing dot is removed and a null MX (RFC 7505) is skipped. An invalid host throws `SpfException` for the SPF `mx` mechanism and is reported in `InvalidMxRecords` by the MX validator.
 - A resolver returning `null` instead of an empty array is now treated as an empty result by all checks.
+- [SPF] The lookup limit is now counted per evaluation instead of per `SpfCheck` instance, a shared instance can be used from multiple threads without one evaluation resetting the limit of another. The count is exposed as `SpfRecord.Lookups`.
 
 ## v1.1.0
 - [SPF] Detect duplicate IP4/IP6 mechanisms in SPF records [Issue:#13](https://github.com/markvantilburg/BusinessMonitor.MailTools/issues/13)
