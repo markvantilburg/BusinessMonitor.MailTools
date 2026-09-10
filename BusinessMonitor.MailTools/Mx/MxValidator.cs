@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;

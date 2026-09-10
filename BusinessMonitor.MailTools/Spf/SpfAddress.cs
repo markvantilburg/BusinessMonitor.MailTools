@@ -126,7 +126,7 @@ namespace BusinessMonitor.MailTools.Spf
 
         public override string ToString()
         {
-            return Address.ToString() + (Length != null ? "/" + Length : "");
+            return Address + (Length != null ? "/" + Length : "");
         }
     }
 }
