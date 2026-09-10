@@ -105,9 +105,29 @@ namespace BusinessMonitor.MailTools.Spf
         public IPAddress Address { get; set; }
 
         /// <summary>
-        /// Gets the CIDR prefix length
+        /// Gets the CIDR prefix length, null when the mechanism has none which means a single address
         /// </summary>
         public int? Length { get; set; }
+
+        /// <summary>
+        /// Gets the prefix length that applies, a mechanism without one covers the single address
+        /// so it equals the full length of 32 or 128 (RFC 7208 section 5.6)
+        /// </summary>
+        private int EffectiveLength => Length ?? (Address.AddressFamily == AddressFamily.InterNetwork ? 32 : 128);
+
+        /// <summary>
+        /// Two addresses are equal when they cover the same network, ip4:192.0.2.1 and ip4:192.0.2.1/32
+        /// are the same mechanism
+        /// </summary>
+        public virtual bool Equals(SpfAddress? other)
+        {
+            return other is not null && Address.Equals(other.Address) && EffectiveLength == other.EffectiveLength;
+        }
+
+        public override int GetHashCode()
+        {
+            return Address.GetHashCode() * 397 ^ EffectiveLength;
+        }
 
         /// <summary>
         /// Checks whether the IP address is part of the network

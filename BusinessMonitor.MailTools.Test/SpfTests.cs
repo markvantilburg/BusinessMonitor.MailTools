@@ -498,12 +498,29 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=spf1 include:include:businessmonitor.nl")]
         [TestCase("v=spf1 a ip4:192.168.1.1 ip4:192.168.1.1 ~all")]
         [TestCase("v=spf1 a ip6:::1 ip6:::1 ~all")]
+        [TestCase("v=spf1 ip4:192.168.1.1 ip4:192.168.1.1/32 ~all")]   // A full prefix length is the same single address
+        [TestCase("v=spf1 ip4:192.168.1.1/32 ip4:192.168.1.1 ~all")]
+        [TestCase("v=spf1 ip6:2001:db8::1 ip6:2001:db8::1/128 ~all")]
+        [TestCase("v=spf1 ip4:192.168.1.0/24 ip4:192.168.1.0/24 ~all")]
         public void TestInvalid(string value)
         {
             Assert.Throws<SpfInvalidException>(() =>
             {
                 SpfCheck.ParseSpfRecord(value);
             });
+        }
+
+        [Test]
+        public void TestDistinctNetworksAreNotDuplicates()
+        {
+            // Different prefix lengths or addresses are different mechanisms, the parsed length is kept as written
+            var record = SpfCheck.ParseSpfRecord("v=spf1 ip4:192.168.1.0/24 ip4:192.168.1.0/25 ip4:192.168.1.0 ip4:192.168.1.1/32 ip6:2001:db8::/64 ip6:2001:db8::1 -all");
+
+            Assert.That(record.Directives, Has.Count.EqualTo(7));
+            Assert.That(record.Directives[0].IP4.Length, Is.EqualTo(24));
+            Assert.That(record.Directives[2].IP4.Length, Is.Null);
+            Assert.That(record.Directives[3].IP4.Length, Is.EqualTo(32));
+            Assert.That(record.Directives[3].IP4.ToString(), Is.EqualTo("192.168.1.1/32"));
         }
 
         [Test]
