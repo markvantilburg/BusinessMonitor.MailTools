@@ -129,7 +129,9 @@ namespace BusinessMonitor.MailTools.Dkim
 
                         break;
 
-                    // Acceptable hash algorithms
+                    // Acceptable hash algorithms, sha1 is still parsed so a legacy record
+                    // is reported as obsolete rather than malformed, it must be accompanied
+                    // by sha256 (checked after all tags are parsed)
                     case "h":
                         // Whitespace around the colons is allowed, empty entries are
                         // kept so they fail the validation below
@@ -212,11 +214,11 @@ namespace BusinessMonitor.MailTools.Dkim
                 throw new DkimInvalidException("DKIM record is missing a required public key");
             }
 
-            // An ed25519 key can only be used with sha256, a record that does not allow
-            // sha256 can never verify a signature (RFC 8463)
-            if (record.KeyType == "ed25519" && record.Algorithms.Length > 0 && !record.Algorithms.Contains("sha256"))
+            // A record that does not allow sha256 can never verify a signature, verifiers must
+            // not accept rsa-sha1 (RFC 8301) and ed25519 is only defined with sha256 (RFC 8463)
+            if (record.Algorithms.Length > 0 && !record.Algorithms.Contains("sha256"))
             {
-                throw new DkimInvalidException("DKIM record with an ed25519 key must allow the sha256 hash algorithm");
+                throw new DkimInvalidException("DKIM record must allow the sha256 hash algorithm, sha1 is obsolete (RFC 8301)");
             }
 
             // Validate the public key data against the key type

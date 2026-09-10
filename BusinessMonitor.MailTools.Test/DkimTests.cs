@@ -407,7 +407,6 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1", new[] { "sha1" })]
         [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha256", new[] { "sha256" })]
         [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1:sha256", new[] { "sha1", "sha256" })]
         [TestCase("v=DKIM1; p=" + RsaKey, new string[0])] // Absent, all algorithms allowed
@@ -423,7 +422,9 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519; h=sha256")]
         [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519; h=sha1:sha256")] // sha256 is allowed, sha1 is just ignored
         [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519")]                // Absent, all algorithms allowed
-        [TestCase("v=DKIM1; p=" + RsaKey + "; k=rsa; h=sha1")]            // Only invalid for ed25519 keys
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=rsa; h=sha256")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=rsa; h=sha1:sha256")]       // sha256 is allowed, sha1 is just ignored
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=rsa")]                      // Absent, all algorithms allowed
         public void TestKeyTypeHashConsistency(string value)
         {
             Assert.DoesNotThrow(() =>
@@ -435,6 +436,9 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         [TestCase("v=DKIM1; p=" + Ed25519Key + "; k=ed25519; h=sha1")] // An ed25519 key can only be used with sha256 (RFC 8463)
         [TestCase("v=DKIM1; p=" + Ed25519Key + "; h=sha1; k=ed25519")] // Tag order does not matter
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1")]                // rsa-sha1 must not be accepted by verifiers (RFC 8301)
+        [TestCase("v=DKIM1; p=" + RsaKey + "; k=rsa; h=sha1")]
+        [TestCase("v=DKIM1; h=sha1; p=" + RsaKey)]                     // Tag order does not matter
         public void TestInvalidKeyTypeHashCombination(string value)
         {
             Assert.Throws<DkimInvalidException>(() =>

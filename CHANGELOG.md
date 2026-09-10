@@ -1,5 +1,12 @@
 # Changelog
 
+## vNext
+- [DKIM] **Breaking:** a record whose `h=` tag does not include `sha256` is now rejected as invalid, `rsa-sha1` signatures must not be accepted by verifiers (RFC 8301) so such a key can never verify a signature. `h=sha1:sha256` and an absent `h=` tag remain valid.
+- [BIMI] Reject `l=` and `a=` locations that contain credentials, or point to localhost or a non-routable IP address (loopback, private, link-local, cloud metadata ranges), so a consumer fetching them cannot be pointed at itself or its internal network.
+- [MX] Limit the number of MX records resolved per domain to 10, an `MxException` is thrown when exceeded (in line with RFC 7208 section 4.6.4 and the existing SPF `mx` limit).
+- [MX] Detect non-routable addresses hidden in IPv6 transition addresses, 6to4 (`2002::/16`), Teredo (`2001::/32`) and NAT64 (`64:ff9b::/96`) are checked on the IPv4 address they embed, IPv4-compatible addresses (`::/96`) are treated as non-routable.
+- Exception messages that quote DNS record content now replace control and non-ASCII characters and truncate long values, see the README note on exception messages.
+
 ## v1.1.0
 - [SPF] Detect duplicate IP4/IP6 mechanisms in SPF records [Issue:#13](https://github.com/markvantilburg/BusinessMonitor.MailTools/issues/13)
 - [MX] Improve the localhost/non routable IP addresses detection [Issue:#7](https://github.com/markvantilburg/BusinessMonitor.MailTools/issues/7)
