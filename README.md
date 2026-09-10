@@ -71,6 +71,19 @@ var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; p=reject; adkim=s; aspf=s");
 Console.WriteLine(record.DkimMode);
 ```
 
+DMARC records are validated against RFC 9989 (DMARCbis). A few things to know:
+
+- `GetDmarcRecord` only queries `_dmarc.<domain>`. When a subdomain has no record, receivers continue
+  with the organizational domain (RFC 9989 section 4.10.1); that step needs the public suffix list and
+  is left to the caller.
+- A domain publishing more than one DMARC record is reported as invalid, receivers discard all of them.
+- An absent `p` tag is treated as `p=none`, `PolicySpecified` tells whether the tag was present.
+  `sp` inherits `p` and `np` inherits `sp` when absent, the properties return the effective policy.
+- `pct`, `rf` and `ri` were removed in RFC 9989 and are ignored by receivers following it. They are
+  still parsed for older receivers but the properties are marked obsolete.
+- The parser is stricter than a receiver: RFC 9989 lets receivers ignore syntax errors, this library
+  reports them as `DmarcInvalidException` so they can be fixed.
+
 Get a SPF record and return all includes:
 
 ```cs
