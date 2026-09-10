@@ -221,10 +221,10 @@ namespace BusinessMonitor.MailTools.Spf
                     {
                         if (modifiers.Any(x => x.Name.Equals(modifier.Name, StringComparison.OrdinalIgnoreCase)))
                         {
-                            throw new SpfInvalidException($"SPF record contains more than one {modifier.Name.ToLower()} modifier");
+                            throw new SpfInvalidException($"SPF record contains more than one {modifier.Name.ToLowerInvariant()} modifier");
                         }
 
-                        ValidateDomainSpec(modifier.Value, modifier.Name.ToLower());
+                        ValidateDomainSpec(modifier.Value, modifier.Name.ToLowerInvariant());
                     }
 
                     modifiers.Add(modifier);
@@ -451,7 +451,7 @@ namespace BusinessMonitor.MailTools.Spf
         /// </summary>
         private static bool IsSpfRecord(string value)
         {
-            return value.StartsWith("v=spf1", StringComparison.InvariantCultureIgnoreCase)
+            return value.StartsWith("v=spf1", StringComparison.OrdinalIgnoreCase)
                 && (value.Length == 6 || value[6] == ' ');
         }
 
@@ -514,7 +514,9 @@ namespace BusinessMonitor.MailTools.Spf
         /// <returns>The parsed directive</returns>
         private static SpfDirective ParseDirective(string qualifier, string mechanism, string value, HashSet<SpfAddress> seenIpAddresses)
         {
-            if (!Mechanisms.Contains(mechanism.ToLower()))
+            // Mechanism names are case insensitive (RFC 7208 section 4.6.1), the comparison must not
+            // depend on the current culture, Turkish lower cases I to a dotless i which breaks the lookup
+            if (!Mechanisms.Contains(mechanism.ToLowerInvariant()))
             {
                 throw new SpfInvalidException($"Not a valid SPF record, '{mechanism.Sanitize()}' is not a valid mechanism");
             }
@@ -570,7 +572,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                     if (!string.IsNullOrEmpty(directive.Domain))
                     {
-                        ValidateDomainSpec(directive.Domain, mechanism.ToLower());
+                        ValidateDomainSpec(directive.Domain, mechanism.ToLowerInvariant());
                     }
 
                     break;
@@ -617,7 +619,7 @@ namespace BusinessMonitor.MailTools.Spf
         /// <returns>The parsed modifier</returns>
         private static SpfModifier ParseModifier(string term)
         {
-            var index = term.IndexOf("=");
+            var index = term.IndexOf('=');
 
             var name = term.Substring(0, index);
             var value = term.Substring(index + 1);

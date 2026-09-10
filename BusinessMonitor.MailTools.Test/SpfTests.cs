@@ -4,6 +4,7 @@ using BusinessMonitor.MailTools.Spf;
 using BusinessMonitor.MailTools.Test.Dns;
 using NUnit.Framework;
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -722,6 +723,37 @@ namespace BusinessMonitor.MailTools.Test
 
             // Each evaluation does the initial lookup and ten includes before the limit trips
             Assert.That(resolver.TextLookups, Has.Count.EqualTo(evaluations * 11));
+        }
+
+        [Test]
+        public void TestParsingIsCultureInvariant()
+        {
+            // Mechanism and modifier names are case insensitive and must parse the same in every culture,
+            // Turkish lower cases I to a dotless i which broke the mechanism lookup
+            var culture = CultureInfo.CurrentCulture;
+
+            try
+            {
+                CultureInfo.CurrentCulture = new CultureInfo("tr-TR");
+
+                var record = SpfCheck.ParseSpfRecord("V=SPF1 IP4:192.0.2.1 IP6:2001:db8::1 INCLUDE:_spf.example.com A MX PTR EXISTS:%{i}.example.com REDIRECT=_spf.example.com -ALL");
+
+                Assert.That(record.Directives.Select(x => x.Mechanism), Is.EqualTo(new[]
+                {
+                    SpfMechanism.IP4, SpfMechanism.IP6, SpfMechanism.Include, SpfMechanism.A,
+                    SpfMechanism.MX, SpfMechanism.Ptr, SpfMechanism.Exists, SpfMechanism.All
+                }));
+                Assert.That(record.Modifiers[0].Name, Is.EqualTo("REDIRECT"));
+
+                Assert.Throws<SpfInvalidException>(() =>
+                {
+                    SpfCheck.ParseSpfRecord("v=spf1 REDIRECT=a.example.com REDIRECT=b.example.com");
+                });
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = culture;
+            }
         }
 
         [Test]
