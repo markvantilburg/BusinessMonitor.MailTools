@@ -179,6 +179,99 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestLookupIgnoresOtherTextRecords()
+        {
+            var resolver = new DummyResolver();
+            resolver.AddText("default._bimi.businessmonitor.nl", "google-site-verification=abc");
+            resolver.AddText("default._bimi.businessmonitor.nl", "v=BIMI1; l=https://businessmonitor.nl/logo.svg");
+            resolver.AddText("default._bimi.businessmonitor.nl", "v=BIMI10; l=https://example.com/other.svg");
+
+            var check = new BimiCheck(resolver);
+            var record = check.GetBimiRecord("businessmonitor.nl");
+
+            Assert.That(record.Location, Is.EqualTo("https://businessmonitor.nl/logo.svg"));
+        }
+
+        [Test]
+        public void TestMultipleRecordsAreInvalid()
+        {
+            // Multiple records terminate discovery, receivers do not perform BIMI (BIMI draft section 7.2)
+            var resolver = new DummyResolver();
+            resolver.AddText("default._bimi.businessmonitor.nl", "v=BIMI1; l=https://businessmonitor.nl/a.svg");
+            resolver.AddText("default._bimi.businessmonitor.nl", "v=BIMI1; l=https://businessmonitor.nl/b.svg");
+
+            var check = new BimiCheck(resolver);
+
+            Assert.Throws<BimiInvalidException>(() =>
+            {
+                check.GetBimiRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
+        public void TestLookupDiscardsInvalidVersion()
+        {
+            var resolver = new DummyResolver("default._bimi.businessmonitor.nl", "v=BIMI10; l=https://businessmonitor.nl/logo.svg");
+            var check = new BimiCheck(resolver);
+
+            Assert.Throws<BimiNotFoundException>(() =>
+            {
+                check.GetBimiRecord("businessmonitor.nl");
+            });
+        }
+
+        [Test]
+        public void TestVersionWhitespace()
+        {
+            // Whitespace around the equals sign is allowed by the tag-value syntax
+            var record = BimiCheck.ParseBimiRecord("v = BIMI1 ; l = https://example.com/logo.svg");
+
+            Assert.That(record.Location, Is.EqualTo("https://example.com/logo.svg"));
+        }
+
+        [TestCase("v=BIMI10; l=https://example.com/logo.svg")]        // Not the version
+        [TestCase("v=BIMI1x; l=https://example.com/logo.svg")]
+        [TestCase("v=bimi1; l=https://example.com/logo.svg")]         // The version must match precisely
+        [TestCase("v=BIMI2; l=https://example.com/logo.svg")]
+        [TestCase("l=https://example.com/logo.svg; v=BIMI1")]         // The version must be the first tag
+        [TestCase("V=BIMI1; l=https://example.com/logo.svg")]         // Tag names are case sensitive
+        [TestCase("v=BIMI1; l=https://example.com/logo.svg; v=BIMI1")] // Duplicate version tag
+        public void TestInvalidVersion(string value)
+        {
+            Assert.Throws<BimiInvalidException>(() =>
+            {
+                BimiCheck.ParseBimiRecord(value);
+            });
+        }
+
+        [TestCase("v=BIMI1; l=https://example.com/a.svg; l=https://example.com/b.svg")] // Duplicate tag (RFC 6376 section 3.2)
+        [TestCase("v=BIMI1; l=https://example.com/a.svg; a=; a=")]
+        [TestCase("v=BIMI1; l=https://example.com/a.svg; garbage")]                    // Segment without a value
+        [TestCase("v=BIMI1;; l=https://example.com/a.svg")]                            // Empty segment in the middle
+        [TestCase("v=BIMI1; l=https://example.com/a.svg; =x")]                         // Empty tag name
+        [TestCase("v=BIMI1; l=https://example.com/a.svg; 1a=x")]                       // Tag names start with a letter
+        [TestCase("v=BIMI1; l=https://example.com/a.svg; a-b=x")]
+        public void TestInvalidTags(string value)
+        {
+            Assert.Throws<BimiInvalidException>(() =>
+            {
+                BimiCheck.ParseBimiRecord(value);
+            });
+        }
+
+        [Test]
+        public void TestUnknownTagsAndTrailingSeparator()
+        {
+            var record = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/a.svg; foo=bar; x_1=y;");
+
+            Assert.That(record.Location, Is.EqualTo("https://example.com/a.svg"));
+
+            var record2 = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/a.svg; ");
+
+            Assert.That(record2.Location, Is.EqualTo("https://example.com/a.svg"));
+        }
+
+        [Test]
         public void TestInvalidArguments()
         {
             Assert.Throws<ArgumentNullException>(() =>
