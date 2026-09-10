@@ -4,6 +4,8 @@ using System;
 using System.Net;
 using BusinessMonitor.MailTools.Mx;
 using BusinessMonitor.MailTools.Dns;
+using BusinessMonitor.MailTools.Exceptions;
+using System.Linq;
 
 namespace BusinessMonitor.MailTools.Test
 {
@@ -82,6 +84,44 @@ namespace BusinessMonitor.MailTools.Test
             // Assert
             Assert.That(result.HasMxRecords, Is.False);
             Assert.That(result.InvalidMxRecords, Is.Empty);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithTooManyMxRecords_ThrowsMxException()
+        {
+            // Arrange
+            var mockResolver = new Mock<IResolver>();
+            mockResolver.Setup(r => r.GetMailRecords("many.nl"))
+                .Returns(Enumerable.Range(1, 11).Select(i => $"mx{i}.many.nl").ToArray());
+
+            var validator = new MxValidator(mockResolver.Object);
+
+            // Act & Assert
+            Assert.Throws<MxException>(() => validator.ValidateMxRecords("many.nl"));
+
+            // No address lookups may be done when the limit is exceeded
+            mockResolver.Verify(r => r.GetAddressRecords(It.IsAny<string>()), Times.Never);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithMaxMxRecords_ResolvesAll()
+        {
+            // Arrange
+            var mockResolver = new Mock<IResolver>();
+            mockResolver.Setup(r => r.GetMailRecords("ten.nl"))
+                .Returns(Enumerable.Range(1, 10).Select(i => $"mx{i}.ten.nl").ToArray());
+            mockResolver.Setup(r => r.GetAddressRecords(It.IsAny<string>()))
+                .Returns(new[] { IPAddress.Parse("222.222.1.1") });
+
+            var validator = new MxValidator(mockResolver.Object);
+
+            // Act
+            var result = validator.ValidateMxRecords("ten.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            mockResolver.Verify(r => r.GetAddressRecords(It.IsAny<string>()), Times.Exactly(10));
         }
 
         [Test]

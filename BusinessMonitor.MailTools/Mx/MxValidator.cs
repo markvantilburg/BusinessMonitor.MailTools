@@ -3,11 +3,17 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using BusinessMonitor.MailTools.Dns;
+using BusinessMonitor.MailTools.Exceptions;
 
 namespace BusinessMonitor.MailTools.Mx
 {
     public class MxValidator
     {
+        /// <summary>
+        /// The maximum number of MX records that will be resolved for a domain (normally maximum is 5)
+        /// </summary>
+        private const int MaxMxRecords = 10;
+
         private readonly IResolver _resolver;
 
         public MxValidator(IResolver resolver)
@@ -31,6 +37,7 @@ namespace BusinessMonitor.MailTools.Mx
             }
         }
 
+        /// <exception cref="MxException">The domain has more than 10 MX records</exception>
         public MxValidationResult ValidateMxRecords(string domain)
         {
             var result = new MxValidationResult();
@@ -39,6 +46,11 @@ namespace BusinessMonitor.MailTools.Mx
             {
                 result.HasMxRecords = false;
                 return result;
+            }
+
+            if (mxRecords.Length > MaxMxRecords)
+            {
+                throw new MxException($"Domain exceeds max MX records of {MaxMxRecords}");
             }
 
             result.HasMxRecords = true;
