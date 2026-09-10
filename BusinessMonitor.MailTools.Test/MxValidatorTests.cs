@@ -1,9 +1,7 @@
 ﻿using NUnit.Framework;
-using Moq;
 using System;
 using System.Net;
 using BusinessMonitor.MailTools.Mx;
-using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Test.Dns;
 
@@ -14,13 +12,15 @@ namespace BusinessMonitor.MailTools.Test
     {
         private static MxValidator.MxValidationResult Validate(params string[] addresses)
         {
-            var mockResolver = new Mock<IResolver>();
-            mockResolver.Setup(r => r.GetMailRecords("example.com"))
-                .Returns(new[] { "mail.example.com" });
-            mockResolver.Setup(r => r.GetAddressRecords("mail.example.com"))
-                .Returns(Array.ConvertAll(addresses, IPAddress.Parse));
+            var resolver = new DummyResolver();
+            resolver.AddMail("example.com", "mail.example.com");
 
-            var validator = new MxValidator(mockResolver.Object);
+            foreach (var address in addresses)
+            {
+                resolver.AddAddress("mail.example.com", IPAddress.Parse(address));
+            }
+
+            var validator = new MxValidator(resolver);
 
             return validator.ValidateMxRecords("example.com");
         }
@@ -29,15 +29,13 @@ namespace BusinessMonitor.MailTools.Test
         public void ValidateMxRecords_WithValidMxRecords_ReturnsValidResult()
         {
             // Arrange
-            var mockResolver = new Mock<IResolver>();
-            mockResolver.Setup(r => r.GetMailRecords("businessmonitor.nl"))
-                .Returns(new[] { "mail1.businessmonitor.nl", "mail2.businessmonitor.nl" });
-            mockResolver.Setup(r => r.GetAddressRecords("mail1.businessmonitor.nl"))
-                .Returns(new[] { IPAddress.Parse("222.222.1.1") });
-            mockResolver.Setup(r => r.GetAddressRecords("mail2.businessmonitor.nl"))
-                .Returns(new[] { IPAddress.Parse("222.222.1.2") });
+            var resolver = new DummyResolver();
+            resolver.AddMail("businessmonitor.nl", "mail1.businessmonitor.nl");
+            resolver.AddMail("businessmonitor.nl", "mail2.businessmonitor.nl");
+            resolver.AddAddress("mail1.businessmonitor.nl", IPAddress.Parse("222.222.1.1"));
+            resolver.AddAddress("mail2.businessmonitor.nl", IPAddress.Parse("222.222.1.2"));
 
-            var validator = new MxValidator(mockResolver.Object);
+            var validator = new MxValidator(resolver);
 
             // Act
             var result = validator.ValidateMxRecords("businessmonitor.nl");
@@ -51,13 +49,11 @@ namespace BusinessMonitor.MailTools.Test
         public void ValidateMxRecords_WithInvalidMxRecords_ReturnsInvalidResult()
         {
             // Arrange
-            var mockResolver = new Mock<IResolver>();
-            mockResolver.Setup(r => r.GetMailRecords("geen.nl"))
-                .Returns(new[] { "bogus.dmrmail.nl" });
-            mockResolver.Setup(r => r.GetAddressRecords("bogus.dmrmail.nl"))
-                .Returns(new[] { IPAddress.Parse("127.0.0.1") });
+            var resolver = new DummyResolver();
+            resolver.AddMail("geen.nl", "bogus.dmrmail.nl");
+            resolver.AddAddress("bogus.dmrmail.nl", IPAddress.Parse("127.0.0.1"));
 
-            var validator = new MxValidator(mockResolver.Object);
+            var validator = new MxValidator(resolver);
 
             // Act
             var result = validator.ValidateMxRecords("geen.nl");
@@ -72,11 +68,7 @@ namespace BusinessMonitor.MailTools.Test
         public void ValidateMxRecords_WithNoMxRecords_ReturnsNoRecords()
         {
             // Arrange
-            var mockResolver = new Mock<IResolver>();
-            mockResolver.Setup(r => r.GetMailRecords("nonexistentdomain.nl"))
-                .Returns(new string[0]);
-
-            var validator = new MxValidator(mockResolver.Object);
+            var validator = new MxValidator(new DummyResolver());
 
             // Act
             var result = validator.ValidateMxRecords("nonexistentdomain.nl");
@@ -242,11 +234,8 @@ namespace BusinessMonitor.MailTools.Test
         public void ValidateMxRecords_WithNullMailRecords_ReturnsNoRecords()
         {
             // Arrange
-            var mockResolver = new Mock<IResolver>();
-            mockResolver.Setup(r => r.GetMailRecords("nullmail.nl"))
-                .Returns((string[])null);
-
-            var validator = new MxValidator(mockResolver.Object);
+            var resolver = new DummyResolver { ReturnNullWhenEmpty = true };
+            var validator = new MxValidator(resolver);
 
             // Act
             var result = validator.ValidateMxRecords("nullmail.nl");
@@ -260,13 +249,10 @@ namespace BusinessMonitor.MailTools.Test
         public void ValidateMxRecords_WithNullAddressRecords_TreatsRecordAsValid()
         {
             // Arrange
-            var mockResolver = new Mock<IResolver>();
-            mockResolver.Setup(r => r.GetMailRecords("nulladdress.nl"))
-                .Returns(new[] { "mail.nulladdress.nl" });
-            mockResolver.Setup(r => r.GetAddressRecords("mail.nulladdress.nl"))
-                .Returns((IPAddress[])null);
+            var resolver = new DummyResolver { ReturnNullWhenEmpty = true };
+            resolver.AddMail("nulladdress.nl", "mail.nulladdress.nl");
 
-            var validator = new MxValidator(mockResolver.Object);
+            var validator = new MxValidator(resolver);
 
             // Act
             var result = validator.ValidateMxRecords("nulladdress.nl");
