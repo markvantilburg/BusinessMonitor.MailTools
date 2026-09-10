@@ -131,6 +131,53 @@ namespace BusinessMonitor.MailTools.Test
             });
         }
 
+        // Locations a consumer would fetch must not point at the consumer itself or its network
+        [TestCase("v=BIMI1; l=https://127.0.0.1/logo.svg")]
+        [TestCase("v=BIMI1; l=https://127.1.2.3/logo.svg")]
+        [TestCase("v=BIMI1; l=https://[::1]/logo.svg")]
+        [TestCase("v=BIMI1; l=https://[::ffff:127.0.0.1]/logo.svg")]
+        [TestCase("v=BIMI1; l=https://[::ffff:10.0.0.1]/logo.svg")]
+        [TestCase("v=BIMI1; l=https://2130706433/logo.svg")]          // decimal form of 127.0.0.1
+        [TestCase("v=BIMI1; l=https://169.254.169.254/latest/meta-data/")]
+        [TestCase("v=BIMI1; l=https://10.0.0.5/logo.svg")]
+        [TestCase("v=BIMI1; l=https://172.16.0.1/logo.svg")]
+        [TestCase("v=BIMI1; l=https://192.168.1.1/logo.svg")]
+        [TestCase("v=BIMI1; l=https://100.64.0.1/logo.svg")]
+        [TestCase("v=BIMI1; l=https://0.0.0.0/logo.svg")]
+        [TestCase("v=BIMI1; l=https://[fd00::1]/logo.svg")]
+        [TestCase("v=BIMI1; l=https://[fe80::1]/logo.svg")]
+        [TestCase("v=BIMI1; l=https://[2002:a00:1::1]/logo.svg")]       // 6to4 embedding 10.0.0.1
+        [TestCase("v=BIMI1; l=https://localhost/logo.svg")]
+        [TestCase("v=BIMI1; l=https://LOCALHOST/logo.svg")]
+        [TestCase("v=BIMI1; l=https://foo.localhost/logo.svg")]
+        [TestCase("v=BIMI1; l=https://user:password@example.com/logo.svg")]
+        [TestCase("v=BIMI1; l=https://user@example.com/logo.svg")]
+        [TestCase("v=BIMI1; l=https://example.com/logo.svg; a=https://127.0.0.1/vmc.pem")]
+        [TestCase("v=BIMI1; l=https://example.com/logo.svg; a=https://localhost/vmc.pem")]
+        [TestCase("v=BIMI1; l=https://example.com/logo.svg; a=https://user:password@example.com/vmc.pem")]
+        public void TestUnsafeLocation(string value)
+        {
+            Assert.Throws<BimiInvalidException>(() =>
+            {
+                BimiCheck.ParseBimiRecord(value);
+            });
+        }
+
+        [TestCase("https://example.com/logo.svg")]
+        [TestCase("https://example.com:8443/logo.svg")]
+        [TestCase("https://example.com/logo.svg?v=2")]
+        [TestCase("https://1.1.1.1/logo.svg")]
+        [TestCase("https://[2606:4700:4700::1111]/logo.svg")]
+        [TestCase("https://localhost.example.com/logo.svg")]
+        [TestCase("https://notlocalhost/logo.svg")]
+        public void TestSafeLocation(string location)
+        {
+            var record = BimiCheck.ParseBimiRecord("v=BIMI1; l=" + location + "; a=" + location);
+
+            Assert.That(record.Location, Is.EqualTo(location));
+            Assert.That(record.Evidence, Is.EqualTo(location));
+        }
+
         [Test]
         public void TestInvalidArguments()
         {

@@ -1,6 +1,7 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Util;
+using System.Net;
 
 namespace BusinessMonitor.MailTools.Bimi
 {
@@ -155,6 +156,33 @@ namespace BusinessMonitor.MailTools.Bimi
             if (uri.Scheme != "https")
             {
                 throw new BimiInvalidException($"BIMI record {type} is invalid, transport must be HTTPS");
+            }
+
+            // A consumer is expected to fetch these locations, reject the targets that would turn
+            // that fetch into a request against the consumer itself or its internal network. A host
+            // name that resolves to such an address can only be caught at fetch time.
+            if (!string.IsNullOrEmpty(uri.UserInfo))
+            {
+                throw new BimiInvalidException($"BIMI record {type} is invalid, must not contain credentials");
+            }
+
+            var host = uri.DnsSafeHost;
+
+            if (host.Length == 0)
+            {
+                throw new BimiInvalidException($"BIMI record {type} is invalid, must contain a host");
+            }
+
+            if (uri.HostNameType == UriHostNameType.IPv4 || uri.HostNameType == UriHostNameType.IPv6)
+            {
+                if (IPAddress.TryParse(host, out var address) && IPAddressHelper.IsNonRoutable(address))
+                {
+                    throw new BimiInvalidException($"BIMI record {type} is invalid, must not point to a non-routable address");
+                }
+            }
+            else if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BimiInvalidException($"BIMI record {type} is invalid, must not point to localhost");
             }
         }
 

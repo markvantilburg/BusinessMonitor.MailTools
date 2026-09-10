@@ -44,6 +44,14 @@ controlled by whoever controls the domain. The library replaces control and non-
 and truncates long values, but it does **not** HTML encode. Always encode `ex.Message` before
 rendering it in a web page and treat it as untrusted text in logs.
 
+### BIMI locations
+
+The `l=` and `a=` locations of a BIMI record are URIs a consumer is expected to fetch. Besides
+requiring HTTPS, the library rejects locations with credentials in the URI and locations that
+point to localhost or to a non-routable IP address (loopback, private, link-local, cloud metadata
+ranges and so on). A host name that *resolves* to such an address can only be detected when the
+location is fetched, so code that downloads these files must still apply its own egress checks.
+
 ### Examples
 
 Validate the DKIM record on a domain and return the public key:
