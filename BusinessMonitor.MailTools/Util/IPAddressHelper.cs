@@ -89,9 +89,7 @@ namespace BusinessMonitor.MailTools.Util
                 }
 
                 // Transition addresses embed an IPv4 address, apply the IPv4 checks to it
-                var embedded = GetEmbeddedIPv4(b);
-
-                if (embedded != null)
+                if (TryGetEmbeddedIPv4(b, out var embedded))
                 {
                     return IsNonRoutableV4(embedded);
                 }
@@ -120,29 +118,33 @@ namespace BusinessMonitor.MailTools.Util
         }
 
         /// <summary>
-        /// Gets the IPv4 address embedded in an IPv6 transition address, null when the address embeds none
+        /// Gets the IPv4 address embedded in an IPv6 transition address, false when the address embeds none
         /// </summary>
-        private static byte[] GetEmbeddedIPv4(byte[] b)
+        private static bool TryGetEmbeddedIPv4(byte[] b, out byte[] embedded)
         {
             // 6to4 2002:a.b.c.d::/48, the IPv4 address follows the prefix (RFC 3056)
             if (b[0] == 0x20 && b[1] == 0x02)
             {
-                return new[] { b[2], b[3], b[4], b[5] };
+                embedded = new[] { b[2], b[3], b[4], b[5] };
+                return true;
             }
 
             // Teredo 2001::/32, the client IPv4 address is the inverted last 32 bits (RFC 4380)
             if (b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x00 && b[3] == 0x00)
             {
-                return new[] { (byte)~b[12], (byte)~b[13], (byte)~b[14], (byte)~b[15] };
+                embedded = new[] { (byte)~b[12], (byte)~b[13], (byte)~b[14], (byte)~b[15] };
+                return true;
             }
 
             // NAT64 64:ff9b::/96, the IPv4 address is the last 32 bits (RFC 6052)
             if (b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xFF && b[3] == 0x9B && IsZero(b, 4, 12))
             {
-                return new[] { b[12], b[13], b[14], b[15] };
+                embedded = new[] { b[12], b[13], b[14], b[15] };
+                return true;
             }
 
-            return null;
+            embedded = Array.Empty<byte>();
+            return false;
         }
 
         private static bool IsZero(byte[] b, int start, int end)
