@@ -246,6 +246,24 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void ValidateMxRecords_WithNullEntries_IgnoresThem()
+        {
+            // Arrange
+            var resolver = new DummyResolver { ReturnNullEntry = true };
+            resolver.AddMail("nullentry.nl", "mail.nullentry.nl");
+            resolver.AddAddress("mail.nullentry.nl", IPAddress.Parse("10.0.0.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("nullentry.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mail.nullentry.nl" }));
+        }
+
+        [Test]
         public void ValidateMxRecords_WithNullAddressRecords_TreatsRecordAsValid()
         {
             // Arrange

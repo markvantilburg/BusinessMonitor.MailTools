@@ -339,6 +339,15 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestNullResolverEntry()
+        {
+            var resolver = new DummyResolver("default._bimi.businessmonitor.nl", "v=BIMI1; l=https://businessmonitor.nl/logo.svg") { ReturnNullEntry = true };
+            var check = new BimiCheck(resolver);
+
+            Assert.That(check.GetBimiRecord("businessmonitor.nl").Location, Is.EqualTo("https://businessmonitor.nl/logo.svg"));
+        }
+
+        [Test]
         public void TestLookups()
         {
             var resolver = new DnsResolver(IPAddress.Parse("1.1.1.1")); // Cloudflare DNS

@@ -46,7 +46,7 @@ namespace BusinessMonitor.MailTools.Bimi
                 throw new ArgumentException("Selector and domain combined exceed the maximum DNS name length of 253 characters", nameof(selector));
             }
 
-            var records = _resolver.GetTextRecords(name) ?? Array.Empty<string>();
+            var records = _resolver.GetTextRecords(name).WithoutNulls();
 
             // Records that do not start with a version tag are discarded (BIMI draft section 7.2)
             var bimiRecords = records.Where(IsBimiRecord).ToList();

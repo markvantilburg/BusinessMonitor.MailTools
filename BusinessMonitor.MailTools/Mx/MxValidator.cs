@@ -42,8 +42,8 @@ namespace BusinessMonitor.MailTools.Mx
             domain = DnsName.ValidateDomain(domain, nameof(domain));
 
             var result = new MxValidationResult();
-            var mxRecords = _resolver.GetMailRecords(domain);
-            if (mxRecords == null || mxRecords.Length == 0)
+            var mxRecords = _resolver.GetMailRecords(domain).WithoutNulls();
+            if (mxRecords.Length == 0)
             {
                 result.HasMxRecords = false;
                 return result;
@@ -71,8 +71,8 @@ namespace BusinessMonitor.MailTools.Mx
                     continue;
                 }
 
-                IPAddress[] ipAddresses = _resolver.GetAddressRecords(host);
-                if (ipAddresses != null && ipAddresses.Any(IPAddressHelper.IsNonRoutable))
+                IPAddress[] ipAddresses = _resolver.GetAddressRecords(host).WithoutNulls();
+                if (ipAddresses.Any(IPAddressHelper.IsNonRoutable))
                 {
                     result.InvalidMxRecords.Add(mxRecord);
                 }

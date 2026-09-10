@@ -153,6 +153,15 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestNullResolverEntry()
+        {
+            var resolver = new DummyResolver("test._domainkey.businessmonitor.nl", "v=DKIM1; p=" + RsaKey) { ReturnNullEntry = true };
+            var check = new DkimCheck(resolver);
+
+            Assert.That(check.GetDkimRecord("businessmonitor.nl", "test").PublicKey, Is.EqualTo(RsaKey));
+        }
+
+        [Test]
         public void TestRevoked()
         {
             var record = DkimCheck.ParseDkimRecord("v=DKIM1; p=");

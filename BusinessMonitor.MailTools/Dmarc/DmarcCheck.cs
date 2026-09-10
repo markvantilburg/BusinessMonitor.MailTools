@@ -51,7 +51,7 @@ namespace BusinessMonitor.MailTools.Dmarc
                 throw new ArgumentException("Domain exceeds the maximum DNS name length of 253 characters with the _dmarc prefix", nameof(domain));
             }
 
-            var records = _resolver.GetTextRecords(name) ?? Array.Empty<string>();
+            var records = _resolver.GetTextRecords(name).WithoutNulls();
 
             // Records that do not start with a version tag are discarded (RFC 9989 section 4.10.1)
             var dmarcRecords = records.Where(IsDmarcRecord).ToList();

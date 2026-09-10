@@ -83,7 +83,7 @@ namespace BusinessMonitor.MailTools.Spf
         private SpfRecord GetRecord(string domain, LookupCounter counter)
         {
             var start = counter.Count;
-            var records = _resolver.GetTextRecords(domain) ?? Array.Empty<string>();
+            var records = _resolver.GetTextRecords(domain).WithoutNulls();
 
             // Find the SPF record
             var record = records.FirstOrDefault(IsSpfRecord);
@@ -633,11 +633,11 @@ namespace BusinessMonitor.MailTools.Spf
             // addresses is not an error, the mechanism simply never matches
             if (directive.Mechanism == SpfMechanism.A)
             {
-                return _resolver.GetAddressRecords(directive.Domain) ?? Array.Empty<IPAddress>();
+                return _resolver.GetAddressRecords(directive.Domain).WithoutNulls();
             }
 
             // Lookup all MX records and do a lookup on those
-            var records = _resolver.GetMailRecords(directive.Domain) ?? Array.Empty<string>();
+            var records = _resolver.GetMailRecords(directive.Domain).WithoutNulls();
 
             if (records.Length > 10)
             {
@@ -659,7 +659,7 @@ namespace BusinessMonitor.MailTools.Spf
                     throw new SpfException($"MX record of '{directive.Domain.Sanitize()}' contains an invalid host name '{record.Sanitize()}'");
                 }
 
-                addresses.AddRange(_resolver.GetAddressRecords(host) ?? Array.Empty<IPAddress>());
+                addresses.AddRange(_resolver.GetAddressRecords(host).WithoutNulls());
             }
 
             return addresses.ToArray();

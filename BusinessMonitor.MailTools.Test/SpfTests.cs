@@ -956,6 +956,23 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestNullResolverEntries()
+        {
+            // A resolver leaving null entries in its arrays must not crash the check, the entries are ignored
+            var resolver = new DummyResolver { ReturnNullEntry = true };
+            resolver.AddText("businessmonitor.nl", "v=spf1 a mx -all");
+            resolver.AddAddress("businessmonitor.nl", IPAddress.Parse("192.0.2.1"));
+            resolver.AddMail("businessmonitor.nl", "mail.businessmonitor.nl");
+            resolver.AddAddress("mail.businessmonitor.nl", IPAddress.Parse("192.0.2.2"));
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.That(record.Directives[0].Addresses, Is.EqualTo(new[] { IPAddress.Parse("192.0.2.1") }));
+            Assert.That(record.Directives[1].Addresses, Is.EqualTo(new[] { IPAddress.Parse("192.0.2.2") }));
+        }
+
+        [Test]
         public void TestExceptionMessageDoesNotEchoControlCharacters()
         {
             // A hostile record must not be able to inject control characters into the message

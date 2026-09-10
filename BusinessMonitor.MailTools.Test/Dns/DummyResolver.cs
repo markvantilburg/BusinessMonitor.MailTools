@@ -40,6 +40,12 @@ namespace BusinessMonitor.MailTools.Test.Dns
         /// </summary>
         public bool ReturnNullWhenEmpty { get; set; }
 
+        /// <summary>
+        /// When set, every lookup result starts with a null entry, mimicking resolver
+        /// implementations that leave gaps in their arrays
+        /// </summary>
+        public bool ReturnNullEntry { get; set; }
+
         public DummyResolver(string domain, string value) : this()
         {
             AddText(domain, value);
@@ -103,8 +109,13 @@ namespace BusinessMonitor.MailTools.Test.Dns
             return NullWhenEmpty(_records.Where(x => x.Domain == domain && x.Type == DnsType.MX).Select(x => x.Value).ToArray());
         }
 
-        private T[] NullWhenEmpty<T>(T[] result)
+        private T[] NullWhenEmpty<T>(T[] result) where T : class
         {
+            if (ReturnNullEntry)
+            {
+                result = new T[] { null }.Concat(result).ToArray();
+            }
+
             return ReturnNullWhenEmpty && result.Length == 0 ? null : result;
         }
 

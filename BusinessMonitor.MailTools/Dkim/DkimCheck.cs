@@ -45,7 +45,7 @@ namespace BusinessMonitor.MailTools.Dkim
                 throw new ArgumentException("Selector and domain combined exceed the maximum DNS name length of 253 characters", nameof(selector));
             }
 
-            var records = _resolver.GetTextRecords(name) ?? Array.Empty<string>();
+            var records = _resolver.GetTextRecords(name).WithoutNulls();
 
             // Find the DKIM record
             var dkimRecords = records.Where(LooksLikeDkimRecord).ToList();

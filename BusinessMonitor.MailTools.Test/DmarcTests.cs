@@ -420,6 +420,15 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestNullResolverEntry()
+        {
+            var resolver = new DummyResolver("_dmarc.businessmonitor.nl", "v=DMARC1; p=reject") { ReturnNullEntry = true };
+            var check = new DmarcCheck(resolver);
+
+            Assert.That(check.GetDmarcRecord("businessmonitor.nl").Policy, Is.EqualTo(ReceiverPolicy.Reject));
+        }
+
+        [Test]
         public void TestLookups()
         {
             var resolver = new DnsResolver(IPAddress.Parse("1.1.1.1")); // Cloudflare DNS
