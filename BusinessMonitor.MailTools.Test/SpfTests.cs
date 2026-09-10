@@ -6,7 +6,7 @@ using NUnit.Framework;
 using System;
 using System.Linq;
 using System.Net;
-using System.Reflection;
+using System.Threading.Tasks;
 
 namespace BusinessMonitor.MailTools.Test
 {
@@ -628,9 +628,8 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(directive.Addresses[1], Is.EqualTo(IPAddress.Parse("10.10.0.2")));
             Assert.That(directive.Addresses[2], Is.EqualTo(IPAddress.Parse("10.10.0.3")));
 
-            // Check the number of lookups
-            var lookups = (int)typeof(SpfCheck).GetField("_lookups", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(check);
-            Assert.That(lookups, Is.EqualTo(1));
+            // The mx mechanism counts as a single lookup regardless of the number of hosts
+            Assert.That(record.Lookups, Is.EqualTo(1));
         }
 
         [Test]
@@ -674,6 +673,55 @@ namespace BusinessMonitor.MailTools.Test
             {
                 check.GetSpfRecord("businessmonitor.nl");
             });
+        }
+
+        [Test]
+        public void TestLookupsAreCounted()
+        {
+            var resolver = new DummyResolver();
+            resolver.AddText("businessmonitor.nl", "v=spf1 a mx include:one.businessmonitor.nl ptr exists:%{i}.businessmonitor.nl redirect=two.businessmonitor.nl");
+            resolver.AddText("one.businessmonitor.nl", "v=spf1 include:three.businessmonitor.nl -all");
+            resolver.AddText("two.businessmonitor.nl", "v=spf1 a -all");
+            resolver.AddText("three.businessmonitor.nl", "v=spf1 ip4:192.0.2.1 -all");
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            // a, mx, include, ptr, exists, redirect and the nested include and a
+            Assert.That(record.Lookups, Is.EqualTo(8));
+
+            // Nested records report the lookups of their own terms
+            var include = record.Directives.First(x => x.Mechanism == SpfMechanism.Include);
+
+            Assert.That(include.Included.Lookups, Is.EqualTo(1));
+            Assert.That(include.Included.Directives[0].Included.Lookups, Is.EqualTo(0));
+            Assert.That(record.Modifiers[0].Included.Lookups, Is.EqualTo(1));
+
+            // A parsed record has no lookups
+            Assert.That(SpfCheck.ParseSpfRecord("v=spf1 a mx -all").Lookups, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TestMaxLookupsOnSharedInstance()
+        {
+            // A single instance used from many threads at once must apply the lookup limit to
+            // every evaluation independently, a looping include must fail every time and must
+            // never cause more lookups than the limit allows
+            var resolver = new DummyResolver("loop.businessmonitor.nl", "v=spf1 include:loop.businessmonitor.nl");
+            var check = new SpfCheck(resolver);
+
+            const int evaluations = 200;
+
+            Parallel.For(0, evaluations, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
+            {
+                Assert.Throws<SpfLookupException>(() =>
+                {
+                    check.GetSpfRecord("loop.businessmonitor.nl");
+                });
+            });
+
+            // Each evaluation does the initial lookup and ten includes before the limit trips
+            Assert.That(resolver.TextLookups, Has.Count.EqualTo(evaluations * 11));
         }
 
         [Test]

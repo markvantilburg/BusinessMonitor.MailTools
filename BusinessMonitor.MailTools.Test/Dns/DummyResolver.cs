@@ -8,6 +8,7 @@ namespace BusinessMonitor.MailTools.Test.Dns
 {
     internal class DummyResolver : IResolver
     {
+        private readonly object _lock = new object();
         private List<Record> _records;
 
         public DummyResolver()
@@ -74,21 +75,30 @@ namespace BusinessMonitor.MailTools.Test.Dns
 
         public string[] GetTextRecords(string domain)
         {
-            TextLookups.Add(domain);
+            lock (_lock)
+            {
+                TextLookups.Add(domain);
+            }
 
             return NullWhenEmpty(_records.Where(x => x.Domain == domain && x.Type == DnsType.TXT).Select(x => x.Value).ToArray());
         }
 
         public IPAddress[] GetAddressRecords(string domain)
         {
-            AddressLookups.Add(domain);
+            lock (_lock)
+            {
+                AddressLookups.Add(domain);
+            }
 
             return NullWhenEmpty(_records.Where(x => x.Domain == domain && x.Type == DnsType.A).Select(x => x.Address).ToArray());
         }
 
         public string[] GetMailRecords(string domain)
         {
-            MailLookups.Add(domain);
+            lock (_lock)
+            {
+                MailLookups.Add(domain);
+            }
 
             return NullWhenEmpty(_records.Where(x => x.Domain == domain && x.Type == DnsType.MX).Select(x => x.Value).ToArray());
         }

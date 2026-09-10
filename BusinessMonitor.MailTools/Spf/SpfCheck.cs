@@ -8,7 +8,8 @@ using System.Net.Sockets;
 namespace BusinessMonitor.MailTools.Spf
 {
     /// <summary>
-    /// Parses, checks and lookups SPF (Sender Policy Framework) records on domain names
+    /// Parses, checks and lookups SPF (Sender Policy Framework) records on domain names.
+    /// Instances hold no per-call state and can be shared between threads.
     /// </summary>
     public class SpfCheck
     {
@@ -28,7 +29,26 @@ namespace BusinessMonitor.MailTools.Spf
         private static readonly string[] Qualifiers = new[] { "+", "-", "~", "?" };
 
         private readonly IResolver _resolver;
-        private int _lookups;
+
+        /// <summary>
+        /// Counts the DNS lookups of a single evaluation toward the limit of 10 (RFC 7208 section 4.6.4).
+        /// Kept per call rather than per instance so concurrent evaluations on a shared instance
+        /// cannot reset or inflate each other's count.
+        /// </summary>
+        private sealed class LookupCounter
+        {
+            public int Count { get; private set; }
+
+            public void Add()
+            {
+                Count++;
+
+                if (Count > MaxLookups)
+                {
+                    throw new SpfLookupException("SPF record exceeds max lookups of 10");
+                }
+            }
+        }
 
         /// <summary>
         /// Initializes a new SPF check instance with the provided DNS resolver
@@ -42,7 +62,6 @@ namespace BusinessMonitor.MailTools.Spf
             }
 
             _resolver = resolver;
-            _lookups = 0;
         }
 
         /// <summary>
@@ -58,13 +77,12 @@ namespace BusinessMonitor.MailTools.Spf
         {
             domain = DnsName.ValidateDomain(domain, nameof(domain));
 
-            _lookups = 0;
-
-            return GetRecord(domain);
+            return GetRecord(domain, new LookupCounter());
         }
 
-        private SpfRecord GetRecord(string domain)
+        private SpfRecord GetRecord(string domain, LookupCounter counter)
         {
+            var start = counter.Count;
             var records = _resolver.GetTextRecords(domain) ?? Array.Empty<string>();
 
             // Find the SPF record
@@ -87,14 +105,14 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 if (directive.Mechanism == SpfMechanism.Include && directive.Include != null)
                 {
-                    CountLookup();
+                    counter.Add();
 
                     // A domain with macros can only be resolved during evaluation
                     if (directive.Include.IndexOf('%') == -1)
                     {
                         try
                         {
-                            var included = GetRecord(directive.Include);
+                            var included = GetRecord(directive.Include, counter);
 
                             directive.Included = included;
                         }
@@ -107,7 +125,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                 if (directive.Mechanism == SpfMechanism.A || directive.Mechanism == SpfMechanism.MX)
                 {
-                    CountLookup();
+                    counter.Add();
 
                     if (string.IsNullOrEmpty(directive.Domain))
                     {
@@ -125,7 +143,7 @@ namespace BusinessMonitor.MailTools.Spf
                 // and count toward the lookup limit (RFC 7208 section 4.6.4)
                 if (directive.Mechanism == SpfMechanism.Ptr || directive.Mechanism == SpfMechanism.Exists)
                 {
-                    CountLookup();
+                    counter.Add();
                 }
             }
 
@@ -135,14 +153,14 @@ namespace BusinessMonitor.MailTools.Spf
 
             if (redirect != null && !parsed.Directives.Any(x => x.Mechanism == SpfMechanism.All))
             {
-                CountLookup();
+                counter.Add();
 
                 // A domain with macros can only be resolved during evaluation
                 if (redirect.Value.IndexOf('%') == -1)
                 {
                     try
                     {
-                        redirect.Included = GetRecord(redirect.Value);
+                        redirect.Included = GetRecord(redirect.Value, counter);
                     }
                     catch (SpfException ex) when (ex is not SpfLookupException)
                     {
@@ -150,6 +168,8 @@ namespace BusinessMonitor.MailTools.Spf
                     }
                 }
             }
+
+            parsed.Lookups = counter.Count - start;
 
             return parsed;
         }
@@ -247,19 +267,6 @@ namespace BusinessMonitor.MailTools.Spf
         private static bool IsLetter(char c)
         {
             return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-        }
-
-        /// <summary>
-        /// Counts a DNS lookup toward the lookup limit of 10 (RFC 7208 section 4.6.4)
-        /// </summary>
-        private void CountLookup()
-        {
-            _lookups++;
-
-            if (_lookups > MaxLookups)
-            {
-                throw new SpfLookupException("SPF record exceeds max lookups of 10");
-            }
         }
 
         /// <summary>
