@@ -1,5 +1,6 @@
 ﻿using BusinessMonitor.MailTools.Dns;
 using BusinessMonitor.MailTools.Exceptions;
+using BusinessMonitor.MailTools.Util;
 using System.Globalization;
 
 namespace BusinessMonitor.MailTools.Dmarc
@@ -130,7 +131,7 @@ namespace BusinessMonitor.MailTools.Dmarc
                     case "pct":
                         if (!int.TryParse(val, NumberStyles.None, CultureInfo.InvariantCulture, out var percentage))
                         {
-                            throw new DmarcInvalidException($"Invalid percentage tag '{val}', must be a number");
+                            throw new DmarcInvalidException($"Invalid percentage tag '{val.Sanitize()}', must be a number");
                         }
 
                         if (percentage < 0 || percentage > 100)
@@ -152,7 +153,7 @@ namespace BusinessMonitor.MailTools.Dmarc
                     case "ri":
                         if (!uint.TryParse(val, NumberStyles.None, CultureInfo.InvariantCulture, out var interval))
                         {
-                            throw new DmarcInvalidException($"Invalid report interval tag '{val}', must be a positive number");
+                            throw new DmarcInvalidException($"Invalid report interval tag '{val.Sanitize()}', must be a positive number");
                         }
 
                         record.ReportInterval = interval;

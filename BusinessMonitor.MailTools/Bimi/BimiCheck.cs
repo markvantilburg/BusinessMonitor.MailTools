@@ -171,7 +171,7 @@ namespace BusinessMonitor.MailTools.Bimi
             {
                 if (!IsValidDnsLabel(selector))
                 {
-                    throw new BimiInvalidException($"Invalid local-part selector '{selector}', selector must be a valid DNS label");
+                    throw new BimiInvalidException($"Invalid local-part selector '{selector.Sanitize()}', selector must be a valid DNS label");
                 }
             }
 

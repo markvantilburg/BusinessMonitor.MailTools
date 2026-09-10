@@ -345,12 +345,12 @@ namespace BusinessMonitor.MailTools.Spf
             // Leading zeros are not allowed (RFC 7208 section 12)
             if (value.Length > 1 && value[0] == '0')
             {
-                throw new SpfInvalidException($"Invalid CIDR prefix length in '{term}', must not contain leading zeros");
+                throw new SpfInvalidException($"Invalid CIDR prefix length in '{term.Sanitize()}', must not contain leading zeros");
             }
 
             if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var length) || length > max)
             {
-                throw new SpfInvalidException($"Invalid CIDR prefix length in '{term}', must be between 0 and {max}");
+                throw new SpfInvalidException($"Invalid CIDR prefix length in '{term.Sanitize()}', must be between 0 and {max}");
             }
 
             return length;
@@ -367,7 +367,7 @@ namespace BusinessMonitor.MailTools.Spf
             {
                 if (!IsValidMacroString(value))
                 {
-                    throw new SpfInvalidException($"The {term} value '{value}' contains an invalid macro");
+                    throw new SpfInvalidException($"The {term} value '{value.Sanitize()}' contains an invalid macro");
                 }
 
                 return;
@@ -383,7 +383,7 @@ namespace BusinessMonitor.MailTools.Spf
 
             if (!DnsName.IsValidName(name) || name.IndexOf('.') == -1)
             {
-                throw new SpfInvalidException($"The {term} value '{value}' must be a domain name");
+                throw new SpfInvalidException($"The {term} value '{value.Sanitize()}' must be a domain name");
             }
 
             // The top label must not be all digits (RFC 7208 section 7.1)
@@ -391,7 +391,7 @@ namespace BusinessMonitor.MailTools.Spf
 
             if (top.All(x => x >= '0' && x <= '9'))
             {
-                throw new SpfInvalidException($"The {term} value '{value}' must not end in an all numeric top label");
+                throw new SpfInvalidException($"The {term} value '{value.Sanitize()}' must not end in an all numeric top label");
             }
         }
 
@@ -487,7 +487,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                 if (value.Length == 0)
                 {
-                    throw new SpfInvalidException($"The {mechanism} mechanism has an empty value");
+                    throw new SpfInvalidException($"The {mechanism.Sanitize()} mechanism has an empty value");
                 }
             }
             else
@@ -516,7 +516,7 @@ namespace BusinessMonitor.MailTools.Spf
         {
             if (!Mechanisms.Contains(mechanism.ToLower()))
             {
-                throw new SpfInvalidException($"Not a valid SPF record, '{mechanism}' is not a valid mechanism");
+                throw new SpfInvalidException($"Not a valid SPF record, '{mechanism.Sanitize()}' is not a valid mechanism");
             }
 
             // Convert the qualifier and mechanism to matching types

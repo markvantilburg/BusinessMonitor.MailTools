@@ -778,5 +778,34 @@ namespace BusinessMonitor.MailTools.Test
             });
         }
 
+        [Test]
+        public void TestExceptionMessageDoesNotEchoControlCharacters()
+        {
+            // A hostile record must not be able to inject control characters into the message
+            var ex = Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord("v=spf1 bogus\u001b[2J\u0007:x -all");
+            });
+
+            // Ordinal comparison, culture-sensitive string search ignores control characters
+            Assert.That(ex.Message, Is.EqualTo("Not a valid SPF record, 'bogus?[2J?' is not a valid mechanism"));
+            Assert.That(ex.Message.IndexOf('\u001b'), Is.EqualTo(-1));
+            Assert.That(ex.Message.IndexOf('\u0007'), Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void TestExceptionMessageIsTruncated()
+        {
+            var mechanism = new string('x', 500);
+
+            var ex = Assert.Throws<SpfInvalidException>(() =>
+            {
+                SpfCheck.ParseSpfRecord("v=spf1 " + mechanism + " -all");
+            });
+
+            Assert.That(ex.Message.Length, Is.LessThan(200));
+            Assert.That(ex.Message, Does.Contain("..."));
+        }
+
     }
 }

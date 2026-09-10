@@ -29,12 +29,12 @@ namespace BusinessMonitor.MailTools.Spf
                 // Leading zeros are not allowed (RFC 7208 section 12)
                 if (prefix.Length > 1 && prefix[0] == '0')
                 {
-                    throw new SpfInvalidException($"Invalid CIDR prefix length '{prefix}' in '{value}', must not contain leading zeros");
+                    throw new SpfInvalidException($"Invalid CIDR prefix length '{prefix.Sanitize()}' in '{value.Sanitize()}', must not contain leading zeros");
                 }
 
                 if (!int.TryParse(prefix, NumberStyles.None, CultureInfo.InvariantCulture, out var parsedLength))
                 {
-                    throw new SpfInvalidException($"Invalid CIDR prefix length '{prefix}' in '{value}'");
+                    throw new SpfInvalidException($"Invalid CIDR prefix length '{prefix.Sanitize()}' in '{value.Sanitize()}'");
                 }
 
                 length = parsedLength;
@@ -44,7 +44,7 @@ namespace BusinessMonitor.MailTools.Spf
             // but are not part of the SPF grammar (RFC 7208 section 12)
             if (ip.IndexOf('%') != -1)
             {
-                throw new SpfInvalidException($"Invalid IP address '{ip}' in '{value}'");
+                throw new SpfInvalidException($"Invalid IP address '{ip.Sanitize()}' in '{value.Sanitize()}'");
             }
 
             IPAddress address;
@@ -54,14 +54,14 @@ namespace BusinessMonitor.MailTools.Spf
             }
             catch (FormatException)
             {
-                throw new SpfInvalidException($"Invalid IP address '{ip}' in '{value}'");
+                throw new SpfInvalidException($"Invalid IP address '{ip.Sanitize()}' in '{value.Sanitize()}'");
             }
 
             if (address.AddressFamily != expectedFamily)
             {
                 var mechanism = expectedFamily == AddressFamily.InterNetwork ? "ip4" : "ip6";
 
-                throw new SpfInvalidException($"Address '{ip}' does not match the {mechanism} mechanism in '{value}'");
+                throw new SpfInvalidException($"Address '{ip.Sanitize()}' does not match the {mechanism} mechanism in '{value.Sanitize()}'");
             }
 
             // Reject legacy shorthand such as "1.2.3" which .NET parses as 1.2.0.3, an SPF ip4 must be a full dotted quad
@@ -71,7 +71,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                 if (parts.Length != 4)
                 {
-                    throw new SpfInvalidException($"IPv4 address must be a full dotted quad, got '{ip}' in '{value}'");
+                    throw new SpfInvalidException($"IPv4 address must be a full dotted quad, got '{ip.Sanitize()}' in '{value.Sanitize()}'");
                 }
 
                 // Octets must be plain decimal numbers without leading zeros (RFC 7208
@@ -81,7 +81,7 @@ namespace BusinessMonitor.MailTools.Spf
                 {
                     if (part.Length > 1 && part[0] == '0')
                     {
-                        throw new SpfInvalidException($"Invalid IPv4 octet '{part}' in '{value}'");
+                        throw new SpfInvalidException($"Invalid IPv4 octet '{part.Sanitize()}' in '{value.Sanitize()}'");
                     }
                 }
             }
@@ -92,7 +92,7 @@ namespace BusinessMonitor.MailTools.Spf
 
                 if (length < 0 || length > maxLength)
                 {
-                    throw new SpfInvalidException($"CIDR prefix length must be between 0 and {maxLength}, got '{length}' in '{value}'");
+                    throw new SpfInvalidException($"CIDR prefix length must be between 0 and {maxLength}, got '{length}' in '{value.Sanitize()}'");
                 }
             }
 

@@ -96,7 +96,7 @@ namespace BusinessMonitor.MailTools.Dkim
                         continue;
                     }
 
-                    throw new DkimInvalidException($"DKIM record contains a malformed tag '{t.Trim()}'");
+                    throw new DkimInvalidException($"DKIM record contains a malformed tag '{t.Trim().Sanitize()}'");
                 }
 
                 var tag = t.Substring(0, i).Trim();
@@ -104,7 +104,7 @@ namespace BusinessMonitor.MailTools.Dkim
 
                 if (!IsValidTagName(tag))
                 {
-                    throw new DkimInvalidException($"DKIM record contains an invalid tag name '{tag}'");
+                    throw new DkimInvalidException($"DKIM record contains an invalid tag name '{tag.Sanitize()}'");
                 }
 
                 if (!seen.Add(tag))

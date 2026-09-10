@@ -36,6 +36,14 @@ public class DnsResolver : IResolver
 
 For an example implementation see [BusinessMonitor.MailTools.Dns](https://github.com/markvantilburg/BusinessMonitor.MailTools/tree/main/BusinessMonitor.MailTools.Dns)
 
+### Exception messages
+
+Validation exceptions quote the offending part of the DNS record in their message, for example
+`Not a valid SPF record, 'bogus' is not a valid mechanism`. That content comes from DNS and is
+controlled by whoever controls the domain. The library replaces control and non-ASCII characters
+and truncates long values, but it does **not** HTML encode. Always encode `ex.Message` before
+rendering it in a web page and treat it as untrusted text in logs.
+
 ### Examples
 
 Validate the DKIM record on a domain and return the public key:

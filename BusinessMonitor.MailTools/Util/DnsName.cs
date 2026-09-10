@@ -63,7 +63,7 @@ namespace BusinessMonitor.MailTools.Util
 
             if (!IsValidName(domain))
             {
-                throw new ArgumentException($"Domain '{domain}' is not a valid DNS name", paramName);
+                throw new ArgumentException($"Domain '{domain.Sanitize()}' is not a valid DNS name", paramName);
             }
         }
 
@@ -80,7 +80,7 @@ namespace BusinessMonitor.MailTools.Util
 
             if (!IsValidName(selector))
             {
-                throw new ArgumentException($"Selector '{selector}' is not a valid DNS name", paramName);
+                throw new ArgumentException($"Selector '{selector.Sanitize()}' is not a valid DNS name", paramName);
             }
         }
     }
