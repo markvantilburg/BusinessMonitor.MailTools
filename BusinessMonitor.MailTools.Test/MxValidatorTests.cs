@@ -210,6 +210,21 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("ff02::1")]         // multicast ff00::/8
         [TestCase("fc00::1")]         // unique local fc00::/7 lower half
         [TestCase("fd12:3456:789a::1")] // unique local fc00::/7 upper half
+        // IPv4-compatible IPv6 ::/96 (deprecated, never routed)
+        [TestCase("::10.0.0.1")]
+        [TestCase("::1.1.1.1")]
+        [TestCase("::2")]
+        // IPv6 transition addresses embedding a non-routable IPv4 address
+        [TestCase("2002:a00:1::1")]              // 6to4 embedding 10.0.0.1
+        [TestCase("2002:c0a8:101::1")]           // 6to4 embedding 192.168.1.1
+        [TestCase("2002:7f00:1::1")]             // 6to4 embedding 127.0.0.1
+        [TestCase("2002:ac10:1::1")]             // 6to4 embedding 172.16.0.1
+        [TestCase("2001:0:4136:e378::f5ff:fffe")] // Teredo, client ~(f5ff:fffe) = 10.0.0.1
+        [TestCase("2001:0:4136:e378::3f57:fefe")] // Teredo, client ~(3f57:fefe) = 192.168.1.1
+        [TestCase("2001:0:4136:e378::80ff:fffe")] // Teredo, client ~(80ff:fffe) = 127.0.0.1
+        [TestCase("64:ff9b::10.0.0.1")]          // NAT64 embedding 10.0.0.1
+        [TestCase("64:ff9b::192.168.1.1")]       // NAT64 embedding 192.168.1.1
+        [TestCase("64:ff9b::169.254.1.1")]       // NAT64 embedding 169.254.1.1
         public void ValidateMxRecords_WithNonRoutableAddress_MarksRecordInvalid(string address)
         {
             var result = Validate(address);
@@ -248,6 +263,13 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("198.20.0.1")]      // just above benchmarking range
         [TestCase("2001:db7:ffff::1")] // just below documentation range
         [TestCase("2001:db9::1")]     // just above documentation range
+        // IPv6 transition addresses embedding a routable IPv4 address
+        [TestCase("2002:101:101::1")]            // 6to4 embedding 1.1.1.1
+        [TestCase("2002:d8ef:2301::1")]          // 6to4 embedding 216.239.35.1
+        [TestCase("2001:0:4136:e378::fefe:fefe")] // Teredo, client ~(fefe:fefe) = 1.1.1.1
+        [TestCase("64:ff9b::1.1.1.1")]           // NAT64 embedding 1.1.1.1
+        [TestCase("64:ff9c::10.0.0.1")]          // not the NAT64 well-known prefix
+        [TestCase("2003:a00:1::1")]              // not the 6to4 prefix
         public void ValidateMxRecords_WithRoutableAddress_MarksRecordValid(string address)
         {
             var result = Validate(address);
