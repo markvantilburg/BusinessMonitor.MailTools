@@ -13,6 +13,19 @@ namespace BusinessMonitor.MailTools.Test
     internal class DmarcTests
     {
         [Test]
+        public void TestIdnDomainIsResolvedInAsciiForm()
+        {
+            // bücher.de is looked up as _dmarc.xn--bcher-kva.de
+            var resolver = new DummyResolver("_dmarc.xn--bcher-kva.de", "v=DMARC1; p=reject");
+            var check = new DmarcCheck(resolver);
+
+            var record = check.GetDmarcRecord("bücher.de");
+
+            Assert.That(record.Policy, Is.EqualTo(ReceiverPolicy.Reject));
+            Assert.That(resolver.TextLookups, Is.EqualTo(new[] { "_dmarc.xn--bcher-kva.de" }));
+        }
+
+        [Test]
         public void TestParse()
         {
             var record = DmarcCheck.ParseDmarcRecord("v=DMARC1; p=reject; adkim=s; aspf=s");

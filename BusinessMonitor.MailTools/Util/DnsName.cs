@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace BusinessMonitor.MailTools.Util
 {
@@ -8,6 +9,11 @@ namespace BusinessMonitor.MailTools.Util
     internal static class DnsName
     {
         private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(200);
+
+        // Converts internationalized domain names (U-labels) to their ASCII A-label (punycode) form.
+        // UseStd3AsciiRules is left off so an underscore label such as a selector is not rejected here,
+        // the label regexes decide what is allowed
+        private static readonly IdnMapping Idn = new IdnMapping { AllowUnassigned = false, UseStd3AsciiRules = false };
 
         // \z rather than $, in .NET $ also matches before a trailing newline so "abc\n" would be a valid label
         private static readonly Regex LabelRegex = new(
@@ -126,10 +132,53 @@ namespace BusinessMonitor.MailTools.Util
         }
 
         /// <summary>
-        /// Validates a caller-provided domain name, throws when it is not a valid DNS name.
-        /// A single trailing dot, the absolute (FQDN) form, is accepted and removed
+        /// Converts a caller-provided name with non-ASCII characters, an internationalized domain name in
+        /// its Unicode (U-label) form such as bücher.de, to the ASCII A-label form used in DNS such as
+        /// xn--bcher-kva.de. A name that is already ASCII is returned unchanged, case included.
         /// </summary>
-        /// <returns>The domain without a trailing dot</returns>
+        /// <remarks>
+        /// The mapping follows the IDNA implementation of the runtime, .NET Framework and NLS apply IDNA2003
+        /// (ß becomes ss), .NET with ICU applies UTS #46 / IDNA2008 (ß is kept as xn--zca), these can be
+        /// different registered domains.
+        /// </remarks>
+        /// <exception cref="ArgumentException">The name cannot be converted to A-labels</exception>
+        internal static string ToAsciiName(string value, string paramName)
+        {
+            if (!HasNonAscii(value))
+            {
+                return value;
+            }
+
+            try
+            {
+                return Idn.GetAscii(value);
+            }
+            catch (ArgumentException ex)
+            {
+                throw new ArgumentException($"'{paramName}' contains characters that cannot be converted to an internationalized domain name (IDNA A-label)", paramName, ex);
+            }
+        }
+
+        private static bool HasNonAscii(string value)
+        {
+            foreach (var c in value)
+            {
+                if (c > 0x7F)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Validates a caller-provided domain name, throws when it is not a valid DNS name.
+        /// A single trailing dot, the absolute (FQDN) form, is accepted and removed. An internationalized
+        /// domain name (U-labels, such as bücher.de) is converted to its A-label form (xn--bcher-kva.de),
+        /// see <see cref="ToAsciiName"/>
+        /// </summary>
+        /// <returns>The domain without a trailing dot, in A-label form</returns>
         internal static string ValidateDomain(string domain, string paramName)
         {
             if (domain == null)
@@ -141,6 +190,8 @@ namespace BusinessMonitor.MailTools.Util
             {
                 domain = domain.Substring(0, domain.Length - 1);
             }
+
+            domain = ToAsciiName(domain, paramName);
 
             if (domain.Length > 253)
             {
@@ -183,20 +234,26 @@ namespace BusinessMonitor.MailTools.Util
         }
 
         /// <summary>
-        /// Validates a caller-provided selector, throws when it is not a valid DNS name
-        /// A selector is a sub-domain and may consist of multiple labels
+        /// Validates a caller-provided selector, throws when it is not a valid DNS name.
+        /// A selector is a sub-domain and may consist of multiple labels. A selector with non-ASCII
+        /// characters is converted to its A-label form, see <see cref="ToAsciiName"/>
         /// </summary>
-        internal static void ValidateSelector(string selector, string paramName)
+        /// <returns>The selector in A-label form</returns>
+        internal static string ValidateSelector(string selector, string paramName)
         {
             if (selector == null)
             {
                 throw new ArgumentNullException(paramName);
             }
 
+            selector = ToAsciiName(selector, paramName);
+
             if (!IsValidName(selector))
             {
                 throw new ArgumentException($"Selector '{selector.Sanitize()}' is not a valid DNS name", paramName);
             }
+
+            return selector;
         }
     }
 }

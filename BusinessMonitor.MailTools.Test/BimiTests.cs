@@ -11,6 +11,19 @@ namespace BusinessMonitor.MailTools.Test
     public class BimiTests
     {
         [Test]
+        public void TestIdnDomainAndSelectorAreResolvedInAsciiForm()
+        {
+            // bücher.de becomes xn--bcher-kva.de and sélecteur becomes xn--slecteur-b1a
+            var resolver = new DummyResolver("xn--slecteur-b1a._bimi.xn--bcher-kva.de", "v=BIMI1; l=https://example.com/logo.svg");
+            var check = new BimiCheck(resolver);
+
+            var record = check.GetBimiRecord("bücher.de", "sélecteur");
+
+            Assert.That(record.Location, Is.EqualTo("https://example.com/logo.svg"));
+            Assert.That(resolver.TextLookups, Is.EqualTo(new[] { "xn--slecteur-b1a._bimi.xn--bcher-kva.de" }));
+        }
+
+        [Test]
         public void TestParse()
         {
             var record = BimiCheck.ParseBimiRecord("v=BIMI1; l=https://example.com/logo.svg");

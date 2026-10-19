@@ -9,6 +9,19 @@ namespace BusinessMonitor.MailTools.Test
 {
     internal class DkimTests
     {
+        [Test]
+        public void TestIdnDomainAndSelectorAreResolvedInAsciiForm()
+        {
+            // bücher.de becomes xn--bcher-kva.de and sélecteur becomes xn--slecteur-b1a
+            var resolver = new DummyResolver("xn--slecteur-b1a._domainkey.xn--bcher-kva.de", "v=DKIM1; p=" + RsaKey);
+            var check = new DkimCheck(resolver);
+
+            var record = check.GetDkimRecord("bücher.de", "sélecteur");
+
+            Assert.That(record.PublicKey, Is.EqualTo(RsaKey));
+            Assert.That(resolver.TextLookups, Is.EqualTo(new[] { "xn--slecteur-b1a._domainkey.xn--bcher-kva.de" }));
+        }
+
         // A valid 1024 bit RSA public key
         private const string RsaKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCuSDS3a/QcWYbKrc/zM8KguDIeb4FQtRQFUTGLbx8FeYfFQ3+tsgU3p0FQCtrR8VfzlHkqU7381A4SMNwXzBW4vB1U0GhimPM6HxcHDdZCjXXqmCHqXoIchHs07lncb1JU83V5HG9g2n8ocWqq+9Hr0KfeG6vgLUSGm5uSXQeDCwIDAQAB";
 

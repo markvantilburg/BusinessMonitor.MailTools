@@ -144,6 +144,84 @@ namespace BusinessMonitor.MailTools.Test
             });
         }
 
+        [TestCase("example.com", "example.com")]
+        [TestCase("Example.COM", "Example.COM")]                   // ASCII input is returned unchanged, case included
+        [TestCase("xn--bcher-kva.de", "xn--bcher-kva.de")]         // Already an A-label
+        [TestCase("bücher.de", "xn--bcher-kva.de")]
+        [TestCase("Bücher.DE", "xn--bcher-kva.de")]                // IDNA mapping lower-cases the converted name
+        [TestCase("bücher.de.", "xn--bcher-kva.de")]               // Trailing dot is removed before conversion
+        [TestCase("mail.bücher.de", "mail.xn--bcher-kva.de")]      // ASCII labels are left alone
+        [TestCase("münchen.de", "xn--mnchen-3ya.de")]
+        [TestCase("例え.jp", "xn--r8jz45g.jp")]
+        [TestCase("_dmarc.bücher.de", "_dmarc.xn--bcher-kva.de")]  // Underscore labels survive the conversion
+        public void TestValidateDomainIdn(string value, string expected)
+        {
+            Assert.That(DnsName.ValidateDomain(value, "domain"), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void TestValidateDomainIdnSharpS()
+        {
+            // IDNA2003 (.NET Framework, NLS) maps ß to ss, UTS #46 / IDNA2008 (ICU) keeps it, both are
+            // valid outcomes of the runtime and are different registered domains
+            Assert.That(DnsName.ValidateDomain("faß.de", "domain"), Is.AnyOf("fass.de", "xn--fa-hia.de"));
+        }
+
+        [TestCase("bü cher.de")]                 // Space
+        [TestCase("bücher..de")]                 // Empty label
+        [TestCase(".bücher.de")]
+        [TestCase("bücher.de..")]
+        [TestCase("bü\u0000cher.de")]            // Control character
+        [TestCase("xn--bücher.de")]              // Mixed A-label prefix and U-label
+        public void TestValidateDomainIdnInvalid(string value)
+        {
+            var ex = Assert.Throws<ArgumentException>(() => DnsName.ValidateDomain(value, "domain"));
+
+            Assert.That(ex.ParamName, Is.EqualTo("domain"));
+        }
+
+        [Test]
+        public void TestValidateDomainIdnLabelTooLong()
+        {
+            // The 63 character label limit applies to the A-label, 70 ü encode to more than that
+            Assert.Throws<ArgumentException>(() => DnsName.ValidateDomain(new string('\u00FC', 70) + ".de", "domain"));
+        }
+
+        [Test]
+        public void TestValidateDomainIdnMessageDoesNotEchoRawInput()
+        {
+            // The raw value may contain anything, the message names the parameter instead
+            var ex = Assert.Throws<ArgumentException>(() => DnsName.ValidateDomain("bü cher.de", "domain"));
+
+            Assert.That(ex.Message, Does.Contain("internationalized domain name"));
+            Assert.That(ex.Message, Does.Not.Contain("bü cher"));
+        }
+
+        [TestCase("selector", "selector")]
+        [TestCase("Selector", "Selector")]
+        [TestCase("s1.s2", "s1.s2")]
+        [TestCase("sélecteur", "xn--slecteur-b1a")]
+        [TestCase("sélecteur.s2", "xn--slecteur-b1a.s2")]
+        public void TestValidateSelectorReturnsAsciiForm(string value, string expected)
+        {
+            Assert.That(DnsName.ValidateSelector(value, "selector"), Is.EqualTo(expected));
+        }
+
+        [TestCase("sé lecteur")]
+        [TestCase("sélecteur..s2")]
+        public void TestValidateSelectorIdnInvalid(string value)
+        {
+            Assert.Throws<ArgumentException>(() => DnsName.ValidateSelector(value, "selector"));
+        }
+
+        [TestCase("example.com", "example.com")]
+        [TestCase("Example.COM", "Example.COM")]
+        [TestCase("bücher.de", "xn--bcher-kva.de")]
+        public void TestToAsciiName(string value, string expected)
+        {
+            Assert.That(DnsName.ToAsciiName(value, "value"), Is.EqualTo(expected));
+        }
+
         [Test]
         public void TestValidateDomainTrailingDot()
         {

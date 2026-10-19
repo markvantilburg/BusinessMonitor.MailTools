@@ -307,6 +307,37 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void ValidateMxRecords_WithIdnDomain_ResolvesAsciiForm()
+        {
+            // An internationalized domain name is looked up in its A-label form
+            var resolver = new DummyResolver();
+            resolver.AddMail("xn--bcher-kva.de", "mail.xn--bcher-kva.de");
+            resolver.AddAddress("mail.xn--bcher-kva.de", IPAddress.Parse("222.222.1.1"));
+
+            var validator = new MxValidator(resolver);
+
+            var result = validator.ValidateMxRecords("bücher.de");
+
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.CanReceiveMail, Is.True);
+            Assert.That(resolver.MailLookups, Is.EqualTo(new[] { "xn--bcher-kva.de" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithIdnImplicitMx_ReportsAsciiForm()
+        {
+            var resolver = new DummyResolver();
+            resolver.AddAddress("xn--bcher-kva.de", IPAddress.Parse("127.0.0.1"));
+
+            var validator = new MxValidator(resolver);
+
+            var result = validator.ValidateMxRecords("bücher.de");
+
+            Assert.That(result.HasImplicitMx, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "xn--bcher-kva.de" }));
+        }
+
+        [Test]
         public void ValidateMxRecords_WithNullDomain_ThrowsArgumentNullException()
         {
             var validator = new MxValidator(new DummyResolver());

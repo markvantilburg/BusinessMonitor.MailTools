@@ -36,7 +36,7 @@ namespace BusinessMonitor.MailTools.Dkim
         public DkimRecord GetDkimRecord(string domain, string selector)
         {
             domain = DnsName.ValidateDomain(domain, nameof(domain));
-            DnsName.ValidateSelector(selector, nameof(selector));
+            selector = DnsName.ValidateSelector(selector, nameof(selector));
 
             var name = selector + "._domainkey." + domain;
 

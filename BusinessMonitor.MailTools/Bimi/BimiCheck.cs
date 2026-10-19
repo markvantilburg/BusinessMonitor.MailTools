@@ -37,7 +37,7 @@ namespace BusinessMonitor.MailTools.Bimi
         public BimiRecord GetBimiRecord(string domain, string selector = "default")
         {
             domain = DnsName.ValidateDomain(domain, nameof(domain));
-            DnsName.ValidateSelector(selector, nameof(selector));
+            selector = DnsName.ValidateSelector(selector, nameof(selector));
 
             var name = selector + "._bimi." + domain;
 

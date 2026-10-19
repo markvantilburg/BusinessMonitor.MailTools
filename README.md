@@ -44,6 +44,10 @@ An `IResolver` implementation is expected to:
 - Return one string per TXT record from `GetTextRecords`, with the character-strings of a record concatenated (see the remarks on the interface).
 - Follow aliases (CNAME) itself. The checks only see the final records and cannot detect an MX exchange that points to an alias (RFC 2181 section 10.3).
 
+### Internationalized domain names
+
+Domains and selectors passed to the checks may be given in their Unicode form, `bücher.de` is looked up as `xn--bcher-kva.de`. The conversion uses the IDNA implementation of the runtime: .NET Framework (and .NET with NLS) applies IDNA2003, which maps `ß` to `ss`, while .NET with ICU applies UTS #46 / IDNA2008, which keeps `ß` as `xn--zca`. These are different registered domains, pass the A-label form yourself when that distinction matters. Record content is never converted, a domain inside an SPF, DMARC or BIMI record must already be in A-label form as required by those specifications.
+
 ### Exception messages
 
 Validation exceptions quote the offending part of the DNS record in their message, for example

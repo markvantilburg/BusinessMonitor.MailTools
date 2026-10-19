@@ -14,6 +14,28 @@ namespace BusinessMonitor.MailTools.Test
     internal class SpfTests
     {
         [Test]
+        public void TestIdnDomainIsResolvedInAsciiForm()
+        {
+            // bücher.de is looked up as xn--bcher-kva.de, a record referring to another IDN must use A-labels
+            var resolver = new DummyResolver();
+            resolver.AddText("xn--bcher-kva.de", "v=spf1 include:xn--mnchen-3ya.de -all");
+            resolver.AddText("xn--mnchen-3ya.de", "v=spf1 ip4:192.0.2.1 -all");
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("bücher.de");
+
+            Assert.That(record.Directives[0].Include, Is.EqualTo("xn--mnchen-3ya.de"));
+            Assert.That(resolver.TextLookups, Is.EqualTo(new[] { "xn--bcher-kva.de", "xn--mnchen-3ya.de" }));
+        }
+
+        [Test]
+        public void TestIdnInRecordIsInvalid()
+        {
+            // SPF records are ASCII (RFC 7208 section 4.3), a U-label inside a record is not a valid domain-spec
+            Assert.Throws<SpfInvalidException>(() => SpfCheck.ParseSpfRecord("v=spf1 include:münchen.de -all"));
+        }
+
+        [Test]
         public void TestParse()
         {
             var record = SpfCheck.ParseSpfRecord("v=spf1 ip4:192.0.2.1 ip4:192.0.2.129 -all");
