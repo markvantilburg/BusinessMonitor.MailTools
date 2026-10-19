@@ -36,6 +36,14 @@ public class DnsResolver : IResolver
 
 For an example implementation see [BusinessMonitor.MailTools.Dns](https://github.com/markvantilburg/BusinessMonitor.MailTools/tree/main/BusinessMonitor.MailTools.Dns)
 
+An `IResolver` implementation is expected to:
+
+- Return an empty array when the name has no records of the requested type or does not exist (NODATA, NXDOMAIN), and **throw** on a transient failure (SERVFAIL, timeout, network error). An empty array is taken as a definitive answer, for example the MX validator then falls back to the implicit MX.
+- Return both A and AAAA records from `GetAddressRecords`. With A records only, an IPv6-only mail host appears to have no addresses and is treated as unable to receive mail.
+- Return the exchange host name only from `GetMailRecords`, without the preference. A null MX (RFC 7505) is returned as `.` or an empty string.
+- Return one string per TXT record from `GetTextRecords`, with the character-strings of a record concatenated (see the remarks on the interface).
+- Follow aliases (CNAME) itself. The checks only see the final records and cannot detect an MX exchange that points to an alias (RFC 2181 section 10.3).
+
 ### Exception messages
 
 Validation exceptions quote the offending part of the DNS record in their message, for example
