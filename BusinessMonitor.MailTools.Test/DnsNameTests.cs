@@ -190,11 +190,25 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         public void TestValidateDomainIdnMessageDoesNotEchoRawInput()
         {
-            // The raw value may contain anything, the message names the parameter instead
-            var ex = Assert.Throws<ArgumentException>(() => DnsName.ValidateDomain("bü cher.de", "domain"));
+            // A label that is too long after encoding is rejected by the IDNA mapping itself, the raw
+            // value may contain anything so the message names the parameter instead of quoting it
+            var value = new string('\u00FC', 70) + ".de";
+
+            var ex = Assert.Throws<ArgumentException>(() => DnsName.ValidateDomain(value, "domain"));
 
             Assert.That(ex.Message, Does.Contain("internationalized domain name"));
-            Assert.That(ex.Message, Does.Not.Contain("bü cher"));
+            Assert.That(ex.Message, Does.Not.Contain("\u00FC\u00FC"));
+            Assert.That(ex.InnerException, Is.InstanceOf<ArgumentException>());
+        }
+
+        [Test]
+        public void TestValidateDomainIdnWithSpaceIsRejectedByLabelRules()
+        {
+            // UseStd3AsciiRules is off so the IDNA mapping passes ASCII characters such as a space
+            // through (bü cher becomes xn--b cher-3ya), the label rules then reject the result
+            var ex = Assert.Throws<ArgumentException>(() => DnsName.ValidateDomain("bü cher.de", "domain"));
+
+            Assert.That(ex.Message, Does.Contain("is not a valid DNS name"));
         }
 
         [TestCase("selector", "selector")]
