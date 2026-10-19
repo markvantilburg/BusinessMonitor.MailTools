@@ -960,6 +960,24 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void TestDuplicateMxHostsAreResolvedOnce()
+        {
+            // DNS names are case insensitive and the absolute form is the same host
+            var resolver = new DummyResolver();
+            resolver.AddText("businessmonitor.nl", "v=spf1 mx -all");
+            resolver.AddMail("businessmonitor.nl", "mail.businessmonitor.nl");
+            resolver.AddMail("businessmonitor.nl", "MAIL.businessmonitor.nl");
+            resolver.AddMail("businessmonitor.nl", "mail.businessmonitor.nl.");
+            resolver.AddAddress("mail.businessmonitor.nl", IPAddress.Parse("192.0.2.1"));
+
+            var check = new SpfCheck(resolver);
+            var record = check.GetSpfRecord("businessmonitor.nl");
+
+            Assert.That(record.Directives[0].Addresses, Is.EqualTo(new[] { IPAddress.Parse("192.0.2.1") }));
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "mail.businessmonitor.nl" }));
+        }
+
+        [Test]
         public void TestMxHostTrailingDotIsNormalized()
         {
             var resolver = new DummyResolver();

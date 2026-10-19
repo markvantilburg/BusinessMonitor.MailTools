@@ -476,6 +476,87 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
+        public void ValidateMxRecords_WithDuplicateMxHosts_ResolvesAndReportsOnce()
+        {
+            // Arrange, DNS names are case insensitive and the absolute form is the same host
+            var resolver = new DummyResolver();
+            resolver.AddMail("dup.nl", "mail.dup.nl");
+            resolver.AddMail("dup.nl", "MAIL.dup.nl");
+            resolver.AddMail("dup.nl", "mail.dup.nl.");
+            resolver.AddMail("dup.nl", "Mail.Dup.NL.");
+            resolver.AddAddress("mail.dup.nl", IPAddress.Parse("127.0.0.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("dup.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.CanReceiveMail, Is.False);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mail.dup.nl" }));
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "mail.dup.nl" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithDuplicateValidMxHosts_ResolvesOnce()
+        {
+            // Arrange
+            var resolver = new DummyResolver();
+            resolver.AddMail("dup.nl", "mail.dup.nl");
+            resolver.AddMail("dup.nl", "mail.dup.nl");
+            resolver.AddMail("dup.nl", "mail2.dup.nl");
+            resolver.AddAddress("mail.dup.nl", IPAddress.Parse("222.222.1.1"));
+            resolver.AddAddress("mail2.dup.nl", IPAddress.Parse("222.222.1.2"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("dup.nl");
+
+            // Assert
+            Assert.That(result.CanReceiveMail, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "mail.dup.nl", "mail2.dup.nl" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithDuplicateInvalidMxHosts_ReportsEach()
+        {
+            // Arrange, records that are not a host name cannot be normalized and are reported as returned
+            var resolver = new DummyResolver();
+            resolver.AddMail("dup.nl", "bad host");
+            resolver.AddMail("dup.nl", "bad host");
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("dup.nl");
+
+            // Assert
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "bad host", "bad host" }));
+            Assert.That(resolver.AddressLookups, Is.Empty);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithTooManyDuplicateMxRecords_ThrowsMxException()
+        {
+            // Arrange, the limit applies to the records as returned, before duplicates are removed
+            var resolver = new DummyResolver();
+
+            for (var i = 1; i <= 11; i++)
+            {
+                resolver.AddMail("many.nl", "mail.many.nl");
+            }
+
+            var validator = new MxValidator(resolver);
+
+            // Act & Assert
+            Assert.Throws<MxException>(() => validator.ValidateMxRecords("many.nl"));
+            Assert.That(resolver.AddressLookups, Is.Empty);
+        }
+
+        [Test]
         public void ValidateMxRecords_WithMxHostWithoutAddressRecords_CannotReceiveMail()
         {
             // Arrange

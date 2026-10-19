@@ -111,6 +111,10 @@ namespace BusinessMonitor.MailTools.Mx
             }
 
             result.HasMxRecords = true;
+
+            // DNS names are case-insensitive, a host listed more than once is resolved and reported once
+            var seenHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var mxRecord in mxRecords)
             {
                 // A null MX (RFC 7505) has no host to resolve, it must be the only MX record of the domain
@@ -130,6 +134,11 @@ namespace BusinessMonitor.MailTools.Mx
                 if (!DnsName.TryNormalizeHost(mxRecord, out var host))
                 {
                     result.InvalidMxRecords.Add(mxRecord);
+                    continue;
+                }
+
+                if (!seenHosts.Add(host))
+                {
                     continue;
                 }
 

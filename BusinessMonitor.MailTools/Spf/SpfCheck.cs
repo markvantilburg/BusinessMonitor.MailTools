@@ -645,6 +645,8 @@ namespace BusinessMonitor.MailTools.Spf
             }
 
             var addresses = new List<IPAddress>();
+            var seenHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var record in records)
             {
                 // A null MX (RFC 7505) has no host to resolve
@@ -657,6 +659,12 @@ namespace BusinessMonitor.MailTools.Spf
                 if (!DnsName.TryNormalizeHost(record, out var host))
                 {
                     throw new SpfException($"MX record of '{directive.Domain.Sanitize()}' contains an invalid host name '{record.Sanitize()}'");
+                }
+
+                // DNS names are case-insensitive, a host listed more than once is resolved once
+                if (!seenHosts.Add(host))
+                {
+                    continue;
                 }
 
                 addresses.AddRange(_resolver.GetAddressRecords(host).WithoutNulls());
