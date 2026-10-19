@@ -42,6 +42,7 @@ namespace BusinessMonitor.MailTools.Test
 
             // Assert
             Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.HasNullMx, Is.False);
             Assert.That(result.InvalidMxRecords, Is.Empty);
             Assert.That(result.CanReceiveMail, Is.True);
         }
@@ -102,6 +103,7 @@ namespace BusinessMonitor.MailTools.Test
             // Assert
             Assert.That(result.HasMxRecords, Is.False);
             Assert.That(result.HasImplicitMx, Is.True);
+            Assert.That(result.HasNullMx, Is.False);
             Assert.That(result.CanReceiveMail, Is.True);
             Assert.That(result.InvalidMxRecords, Is.Empty);
             Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "implicit.nl" }));
@@ -378,8 +380,28 @@ namespace BusinessMonitor.MailTools.Test
 
             Assert.That(result.HasMxRecords, Is.True);
             Assert.That(result.HasImplicitMx, Is.False);
+            Assert.That(result.HasNullMx, Is.True);
             Assert.That(result.CanReceiveMail, Is.False);
             Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(resolver.AddressLookups, Is.Empty);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithTwoNullMx_ReportsNullMxOnce()
+        {
+            // A null MX must be the only MX record (RFC 7505 section 3), two of them is a misconfiguration
+            var resolver = new DummyResolver();
+            resolver.AddMail("doublenull.nl", ".");
+            resolver.AddMail("doublenull.nl", ".");
+
+            var validator = new MxValidator(resolver);
+
+            var result = validator.ValidateMxRecords("doublenull.nl");
+
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.HasNullMx, Is.True);
+            Assert.That(result.CanReceiveMail, Is.False);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "." }));
             Assert.That(resolver.AddressLookups, Is.Empty);
         }
 
@@ -511,9 +533,10 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        public void ValidateMxRecords_WithNullMxAndValidMx_CanReceiveMail()
+        public void ValidateMxRecords_WithNullMxAndValidMx_ReportsNullMxInvalid()
         {
-            // Arrange, a null MX next to a real MX is a misconfiguration, the real host still receives mail
+            // Arrange, a null MX must be the only MX record (RFC 7505 section 3), next to a real MX it is
+            // reported as invalid while the real host still receives mail
             var resolver = new DummyResolver();
             resolver.AddMail("mixednull.nl", ".");
             resolver.AddMail("mixednull.nl", "mail.mixednull.nl");
@@ -525,8 +548,31 @@ namespace BusinessMonitor.MailTools.Test
             var result = validator.ValidateMxRecords("mixednull.nl");
 
             // Assert
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.HasNullMx, Is.True);
             Assert.That(result.CanReceiveMail, Is.True);
-            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "." }));
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "mail.mixednull.nl" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithValidMxAndNullMx_ReportsNullMxInvalid()
+        {
+            // Arrange, the order of the records does not matter
+            var resolver = new DummyResolver();
+            resolver.AddMail("mixednull.nl", "mail.mixednull.nl");
+            resolver.AddMail("mixednull.nl", "");
+            resolver.AddAddress("mail.mixednull.nl", IPAddress.Parse("222.222.1.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("mixednull.nl");
+
+            // Assert
+            Assert.That(result.HasNullMx, Is.True);
+            Assert.That(result.CanReceiveMail, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "" }));
         }
 
         // IPv4 non-routable ranges

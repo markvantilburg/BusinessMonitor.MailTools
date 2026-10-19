@@ -39,6 +39,14 @@ namespace BusinessMonitor.MailTools.Mx
             public bool HasImplicitMx { get; set; }
 
             /// <summary>
+            /// Whether the domain has a null MX record (RFC 7505), an MX pointing to the root name which
+            /// states the domain accepts no mail. The preference cannot be verified as the resolver only
+            /// returns the exchange. A null MX must be the only MX record of the domain, when other MX
+            /// records are present the null MX is reported in <see cref="InvalidMxRecords"/>.
+            /// </summary>
+            public bool HasNullMx { get; set; }
+
+            /// <summary>
             /// Whether, as far as DNS is concerned, the domain can receive mail: at least one MX host or
             /// the implicit MX host is a valid name that resolves to address records of which none is
             /// non-routable. False when there are no MX and no address records, for a null MX (RFC 7505),
@@ -49,7 +57,7 @@ namespace BusinessMonitor.MailTools.Mx
 
             /// <summary>
             /// The MX hosts that are not valid or resolve to a non-routable address, for an implicit MX
-            /// this is the domain itself
+            /// this is the domain itself, a null MX next to other MX records is reported once
             /// </summary>
             public List<string> InvalidMxRecords { get; set; }
 
@@ -105,9 +113,15 @@ namespace BusinessMonitor.MailTools.Mx
             result.HasMxRecords = true;
             foreach (var mxRecord in mxRecords)
             {
-                // A null MX (RFC 7505) has no host to resolve
+                // A null MX (RFC 7505) has no host to resolve, it must be the only MX record of the domain
                 if (DnsName.IsNullMx(mxRecord))
                 {
+                    if (!result.HasNullMx && mxRecords.Length > 1)
+                    {
+                        result.InvalidMxRecords.Add(mxRecord);
+                    }
+
+                    result.HasNullMx = true;
                     continue;
                 }
 
