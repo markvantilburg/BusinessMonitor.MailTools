@@ -1,6 +1,8 @@
 # Changelog
 
 ## v1.2.0
+- [MX] A domain without MX records now falls back to the implicit MX (RFC 5321 section 5.1): the address records of the domain itself are resolved and validated, `MxValidationResult.HasImplicitMx` is set when they exist and a non-routable address is reported in `InvalidMxRecords` as the domain name. `HasMxRecords` keeps reporting whether MX records exist. A null MX (RFC 7505) does not fall back.
+- [MX] New `MxValidationResult.CanReceiveMail`, true when at least one MX host or the implicit MX host is a valid name resolving to address records none of which is non-routable. False without MX and address records, for a null MX, and when every mail host is invalid, non-routable or has no address records.
 - [DKIM] **Breaking:** a record whose `h=` tag does not include `sha256` is now rejected as invalid, `rsa-sha1` signatures must not be accepted by verifiers (RFC 8301) so such a key can never verify a signature. `h=sha1:sha256` and an absent `h=` tag remain valid.
 - [BIMI] Reject `l=` and `a=` locations that contain credentials, or point to localhost or a non-routable IP address (loopback, private, link-local, cloud metadata ranges), so a consumer fetching them cannot be pointed at itself or its internal network.
 - [MX] Limit the number of MX records resolved per domain to 10, an `MxException` is thrown when exceeded (in line with RFC 7208 section 4.6.4 and the existing SPF `mx` limit).

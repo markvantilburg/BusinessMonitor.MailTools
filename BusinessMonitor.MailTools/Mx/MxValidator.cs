@@ -26,7 +26,31 @@ namespace BusinessMonitor.MailTools.Mx
 
         public class MxValidationResult
         {
+            /// <summary>
+            /// Whether the domain has MX records
+            /// </summary>
             public bool HasMxRecords { get; set; }
+
+            /// <summary>
+            /// Whether the domain has no MX records but does have address records, mail is then delivered
+            /// to the domain itself as if it had an MX record with preference 0 pointing to that host
+            /// (RFC 5321 section 5.1)
+            /// </summary>
+            public bool HasImplicitMx { get; set; }
+
+            /// <summary>
+            /// Whether, as far as DNS is concerned, the domain can receive mail: at least one MX host or
+            /// the implicit MX host is a valid name that resolves to address records of which none is
+            /// non-routable. False when there are no MX and no address records, for a null MX (RFC 7505),
+            /// or when every mail host is invalid, non-routable or has no address records. No SMTP
+            /// connection is made, a server that exists may still refuse mail.
+            /// </summary>
+            public bool CanReceiveMail { get; set; }
+
+            /// <summary>
+            /// The MX hosts that are not valid or resolve to a non-routable address, for an implicit MX
+            /// this is the domain itself
+            /// </summary>
             public List<string> InvalidMxRecords { get; set; }
 
             public MxValidationResult()
@@ -35,6 +59,12 @@ namespace BusinessMonitor.MailTools.Mx
             }
         }
 
+        /// <summary>
+        /// Validates the MX records of a domain. A domain without MX records falls back to the implicit
+        /// MX (RFC 5321 section 5.1), the address records of the domain itself are then validated and
+        /// <see cref="MxValidationResult.HasImplicitMx"/> is set. A null MX (RFC 7505) is an MX record
+        /// and does not fall back.
+        /// </summary>
         /// <exception cref="MxException">The domain has more than 10 MX records</exception>
         /// <exception cref="ArgumentException">The domain is not a valid DNS name</exception>
         public MxValidationResult ValidateMxRecords(string domain)
@@ -45,7 +75,25 @@ namespace BusinessMonitor.MailTools.Mx
             var mxRecords = _resolver.GetMailRecords(domain).WithoutNulls();
             if (mxRecords.Length == 0)
             {
+                // An empty list of MXs is treated as an implicit MX with preference 0 pointing to the
+                // domain itself (RFC 5321 section 5.1), without address records no mail can be delivered
                 result.HasMxRecords = false;
+
+                var addresses = _resolver.GetAddressRecords(domain).WithoutNulls();
+                if (addresses.Length > 0)
+                {
+                    result.HasImplicitMx = true;
+
+                    if (addresses.Any(IPAddressHelper.IsNonRoutable))
+                    {
+                        result.InvalidMxRecords.Add(domain);
+                    }
+                    else
+                    {
+                        result.CanReceiveMail = true;
+                    }
+                }
+
                 return result;
             }
 
@@ -75,6 +123,12 @@ namespace BusinessMonitor.MailTools.Mx
                 if (ipAddresses.Any(IPAddressHelper.IsNonRoutable))
                 {
                     result.InvalidMxRecords.Add(mxRecord);
+                }
+                else if (ipAddresses.Length > 0)
+                {
+                    // A host without address records is not reported as invalid, the name may
+                    // exist but mail cannot be delivered to it
+                    result.CanReceiveMail = true;
                 }
             }
 

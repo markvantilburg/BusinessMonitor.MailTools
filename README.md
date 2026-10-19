@@ -106,11 +106,16 @@ Validate MX records for a domain:
 var validator = new MxValidator(resolver);
 var result = validator.ValidateMxRecords("example.com");
 
-if (!result.HasMxRecords)
+if (!result.CanReceiveMail)
 {
-    Console.WriteLine("No MX records found.");
+    Console.WriteLine("The domain cannot receive mail.");
 }
-else if (result.InvalidMxRecords.Count > 0)
+else if (result.HasImplicitMx)
+{
+    Console.WriteLine("No MX records, mail is delivered to the domain itself (implicit MX, RFC 5321 section 5.1).");
+}
+
+if (result.InvalidMxRecords.Count > 0)
 {
     Console.WriteLine("Invalid MX records:");
     foreach (var mx in result.InvalidMxRecords)
@@ -118,8 +123,8 @@ else if (result.InvalidMxRecords.Count > 0)
         Console.WriteLine(mx);
     }
 }
-else
-{
-    Console.WriteLine("All MX records are valid.");
-}
 ```
+
+`CanReceiveMail` is the DNS-level conclusion: at least one MX host, or the implicit MX host, is a valid name that resolves to address records none of which is non-routable. It is `false` for a domain without MX and address records, for a null MX (RFC 7505, `0 .`), and when every mail host is invalid, non-routable or has no address records. No SMTP connection is made, a server that exists may still refuse mail.
+
+A domain without MX records is not without mail, RFC 5321 section 5.1 treats it as having an implicit MX record with preference 0 pointing to the domain itself. `ValidateMxRecords` then validates the address records of the domain and sets `HasImplicitMx`, a non-routable address is reported in `InvalidMxRecords` as the domain name. A null MX is an MX record and does not fall back to the implicit MX.

@@ -43,6 +43,7 @@ namespace BusinessMonitor.MailTools.Test
             // Assert
             Assert.That(result.HasMxRecords, Is.True);
             Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(result.CanReceiveMail, Is.True);
         }
 
         [Test]
@@ -62,20 +63,168 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(result.HasMxRecords, Is.True);
             Assert.That(result.InvalidMxRecords.Count, Is.EqualTo(1));
             Assert.That(result.InvalidMxRecords, Does.Contain("bogus.dmrmail.nl"));
+            Assert.That(result.CanReceiveMail, Is.False);
         }
 
         [Test]
         public void ValidateMxRecords_WithNoMxRecords_ReturnsNoRecords()
         {
             // Arrange
-            var validator = new MxValidator(new DummyResolver());
+            var resolver = new DummyResolver();
+            var validator = new MxValidator(resolver);
 
             // Act
             var result = validator.ValidateMxRecords("nonexistentdomain.nl");
 
             // Assert
             Assert.That(result.HasMxRecords, Is.False);
+            Assert.That(result.HasImplicitMx, Is.False);
+            Assert.That(result.CanReceiveMail, Is.False);
             Assert.That(result.InvalidMxRecords, Is.Empty);
+
+            // The implicit MX is looked up on the domain itself
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "nonexistentdomain.nl" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithImplicitMx_ReturnsImplicitMx()
+        {
+            // Arrange, no MX records but an address record, RFC 5321 section 5.1 treats the domain
+            // as an MX with preference 0 pointing to itself
+            var resolver = new DummyResolver();
+            resolver.AddAddress("implicit.nl", IPAddress.Parse("222.222.1.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("implicit.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.False);
+            Assert.That(result.HasImplicitMx, Is.True);
+            Assert.That(result.CanReceiveMail, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "implicit.nl" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithImplicitMxMultipleAddresses_ReturnsImplicitMx()
+        {
+            // Arrange
+            var resolver = new DummyResolver();
+            resolver.AddAddress("implicit.nl", IPAddress.Parse("222.222.1.1"));
+            resolver.AddAddress("implicit.nl", IPAddress.Parse("2606:4700:4700::1111"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("implicit.nl");
+
+            // Assert
+            Assert.That(result.HasImplicitMx, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+        }
+
+        [TestCase("127.0.0.1")]
+        [TestCase("10.0.0.1")]
+        [TestCase("192.168.1.1")]
+        [TestCase("::1")]
+        [TestCase("::ffff:10.0.0.1")]
+        [TestCase("2002:a00:1::1")]  // 6to4 embedding 10.0.0.1
+        public void ValidateMxRecords_WithNonRoutableImplicitMx_MarksDomainInvalid(string address)
+        {
+            // Arrange
+            var resolver = new DummyResolver();
+            resolver.AddAddress("implicit.nl", IPAddress.Parse(address));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("implicit.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.False);
+            Assert.That(result.HasImplicitMx, Is.True);
+            Assert.That(result.CanReceiveMail, Is.False);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "implicit.nl" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithMixedImplicitMxAddresses_MarksDomainInvalid()
+        {
+            // Arrange, a single non-routable address among routable ones invalidates the implicit MX
+            var resolver = new DummyResolver();
+            resolver.AddAddress("implicit.nl", IPAddress.Parse("1.1.1.1"));
+            resolver.AddAddress("implicit.nl", IPAddress.Parse("10.0.0.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("implicit.nl");
+
+            // Assert
+            Assert.That(result.HasImplicitMx, Is.True);
+            Assert.That(result.CanReceiveMail, Is.False);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "implicit.nl" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithImplicitMxAndTrailingDotDomain_ResolvesWithoutDot()
+        {
+            // Arrange
+            var resolver = new DummyResolver();
+            resolver.AddAddress("implicit.nl", IPAddress.Parse("222.222.1.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("implicit.nl.");
+
+            // Assert
+            Assert.That(result.HasImplicitMx, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(resolver.MailLookups, Is.EqualTo(new[] { "implicit.nl" }));
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "implicit.nl" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithImplicitMxAndNullAddressEntries_IgnoresThem()
+        {
+            // Arrange
+            var resolver = new DummyResolver { ReturnNullEntry = true };
+            resolver.AddAddress("implicit.nl", IPAddress.Parse("222.222.1.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act, the null entry prepended to the MX result is removed so the list is empty and
+            // the implicit MX applies, the null entry in the address result is removed as well
+            var result = validator.ValidateMxRecords("implicit.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.False);
+            Assert.That(result.HasImplicitMx, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithMxRecords_DoesNotResolveImplicitMx()
+        {
+            // Arrange, the domain has both MX and address records, only the MX hosts are resolved
+            var resolver = new DummyResolver();
+            resolver.AddMail("both.nl", "mail.both.nl");
+            resolver.AddAddress("mail.both.nl", IPAddress.Parse("222.222.1.1"));
+            resolver.AddAddress("both.nl", IPAddress.Parse("10.0.0.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("both.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.HasImplicitMx, Is.False);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "mail.both.nl" }));
         }
 
         [Test]
@@ -208,15 +357,20 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("")]
         public void ValidateMxRecords_WithNullMx_SkipsRecord(string mxHost)
         {
-            // A null MX (RFC 7505) states the domain accepts no mail, there is nothing to resolve
+            // A null MX (RFC 7505) states the domain accepts no mail, there is nothing to resolve and
+            // it is an MX record so the implicit MX fallback does not apply even when the domain has
+            // address records
             var resolver = new DummyResolver();
             resolver.AddMail("nomail.nl", mxHost);
+            resolver.AddAddress("nomail.nl", IPAddress.Parse("222.222.1.1"));
 
             var validator = new MxValidator(resolver);
 
             var result = validator.ValidateMxRecords("nomail.nl");
 
             Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.HasImplicitMx, Is.False);
+            Assert.That(result.CanReceiveMail, Is.False);
             Assert.That(result.InvalidMxRecords, Is.Empty);
             Assert.That(resolver.AddressLookups, Is.Empty);
         }
@@ -237,11 +391,12 @@ namespace BusinessMonitor.MailTools.Test
             var resolver = new DummyResolver { ReturnNullWhenEmpty = true };
             var validator = new MxValidator(resolver);
 
-            // Act
+            // Act, the address lookup for the implicit MX returns null as well
             var result = validator.ValidateMxRecords("nullmail.nl");
 
             // Assert
             Assert.That(result.HasMxRecords, Is.False);
+            Assert.That(result.HasImplicitMx, Is.False);
             Assert.That(result.InvalidMxRecords, Is.Empty);
         }
 
@@ -275,8 +430,94 @@ namespace BusinessMonitor.MailTools.Test
             // Act
             var result = validator.ValidateMxRecords("nulladdress.nl");
 
+            // Assert, the host is not reported as invalid but mail cannot be delivered to it
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(result.CanReceiveMail, Is.False);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithMxHostWithoutAddressRecords_CannotReceiveMail()
+        {
+            // Arrange
+            var resolver = new DummyResolver();
+            resolver.AddMail("noaddress.nl", "mail.noaddress.nl");
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("noaddress.nl");
+
             // Assert
             Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(result.CanReceiveMail, Is.False);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithOneValidAmongInvalidMxRecords_CanReceiveMail()
+        {
+            // Arrange, a single usable host is enough to receive mail
+            var resolver = new DummyResolver();
+            resolver.AddMail("partial.nl", "mx1.partial.nl");
+            resolver.AddMail("partial.nl", "mx2.partial.nl");
+            resolver.AddMail("partial.nl", "mx3.partial.nl");
+            resolver.AddMail("partial.nl", "bad host");
+            resolver.AddAddress("mx1.partial.nl", IPAddress.Parse("127.0.0.1"));
+            resolver.AddAddress("mx2.partial.nl", IPAddress.Parse("222.222.1.1"));
+            // mx3 has no address records
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("partial.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mx1.partial.nl", "bad host" }));
+            Assert.That(result.CanReceiveMail, Is.True);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithOnlyInvalidMxRecords_CannotReceiveMail()
+        {
+            // Arrange
+            var resolver = new DummyResolver();
+            resolver.AddMail("allbad.nl", "mx1.allbad.nl");
+            resolver.AddMail("allbad.nl", "mx2.allbad.nl");
+            resolver.AddMail("allbad.nl", "mx3.allbad.nl");
+            resolver.AddMail("allbad.nl", "bad host");
+            resolver.AddAddress("mx1.allbad.nl", IPAddress.Parse("127.0.0.1"));
+            resolver.AddAddress("mx2.allbad.nl", IPAddress.Parse("10.0.0.1"));
+            // mx3 has no address records
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("allbad.nl");
+
+            // Assert
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mx1.allbad.nl", "mx2.allbad.nl", "bad host" }));
+            Assert.That(result.CanReceiveMail, Is.False);
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithNullMxAndValidMx_CanReceiveMail()
+        {
+            // Arrange, a null MX next to a real MX is a misconfiguration, the real host still receives mail
+            var resolver = new DummyResolver();
+            resolver.AddMail("mixednull.nl", ".");
+            resolver.AddMail("mixednull.nl", "mail.mixednull.nl");
+            resolver.AddAddress("mail.mixednull.nl", IPAddress.Parse("222.222.1.1"));
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("mixednull.nl");
+
+            // Assert
+            Assert.That(result.CanReceiveMail, Is.True);
             Assert.That(result.InvalidMxRecords, Is.Empty);
         }
 
@@ -340,6 +581,7 @@ namespace BusinessMonitor.MailTools.Test
 
             Assert.That(result.HasMxRecords, Is.True);
             Assert.That(result.InvalidMxRecords, Does.Contain("mail.example.com"));
+            Assert.That(result.CanReceiveMail, Is.False);
         }
 
         // IPv4 routable addresses, including boundaries just outside the non-routable ranges
@@ -385,6 +627,7 @@ namespace BusinessMonitor.MailTools.Test
 
             Assert.That(result.HasMxRecords, Is.True);
             Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(result.CanReceiveMail, Is.True);
         }
 
         [Test]
@@ -395,6 +638,7 @@ namespace BusinessMonitor.MailTools.Test
 
             Assert.That(result.HasMxRecords, Is.True);
             Assert.That(result.InvalidMxRecords, Does.Contain("mail.example.com"));
+            Assert.That(result.CanReceiveMail, Is.False);
         }
     }
 }
