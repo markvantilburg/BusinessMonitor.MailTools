@@ -31,8 +31,12 @@ namespace BusinessMonitor.MailTools.Dns
         /// <summary>
         /// Gets all mail exchange (MX) records from a domain
         /// </summary>
+        /// <remarks>
+        /// Implementations must return the exchange host name only, without the preference. A null MX
+        /// (RFC 7505) is returned as "." or an empty string.
+        /// </remarks>
         /// <param name="domain">The domain</param>
-        /// <returns>List of mail exchange records</returns>
+        /// <returns>List of mail exchange records, one exchange host name per record</returns>
         public string[] GetMailRecords(string domain);
     }
 }
