@@ -15,6 +15,14 @@ namespace BusinessMonitor.MailTools.Util
             RegexOptions.None,
             RegexTimeout);
 
+        // A host name label (RFC 1123 section 2.1), as a DNS label but without underscores
+        private static readonly Regex HostLabelRegex = new(
+            @"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\z",
+            RegexOptions.None,
+            RegexTimeout);
+
+        private static readonly Regex DigitsRegex = new(@"^[0-9]+\z", RegexOptions.None, RegexTimeout);
+
         /// <summary>
         /// Checks whether a value is a valid DNS label
         /// ASCII letters, digits, underscores or hyphens only, must not start or end with a hyphen, at most 63 characters
@@ -45,6 +53,31 @@ namespace BusinessMonitor.MailTools.Util
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Checks whether a value is a valid host name (RFC 1123 section 2.1), a DNS name whose labels
+        /// consist of letters, digits and hyphens only and whose last label is not all digits, which
+        /// rejects IP address literals and numeric top-level domains. Mail exchanges (MX) must be host names.
+        /// </summary>
+        internal static bool IsValidHostName(string value)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length > 253)
+            {
+                return false;
+            }
+
+            var labels = value.Split('.');
+
+            foreach (var label in labels)
+            {
+                if (!HostLabelRegex.IsMatch(label))
+                {
+                    return false;
+                }
+            }
+
+            return !DigitsRegex.IsMatch(labels[labels.Length - 1]);
         }
 
         /// <summary>
@@ -87,8 +120,9 @@ namespace BusinessMonitor.MailTools.Util
 
         /// <summary>
         /// Normalizes a host name returned by DNS, such as an MX exchange, before it is resolved again.
-        /// A single trailing dot is removed. Returns false when the value is not a valid DNS name,
-        /// such a name must not be passed back to the resolver.
+        /// A single trailing dot is removed. Returns false when the value is not a valid host name
+        /// (RFC 1123 section 2.1, see <see cref="IsValidHostName"/>), such a name must not be passed
+        /// back to the resolver.
         /// </summary>
         internal static bool TryNormalizeHost(string value, out string host)
         {
@@ -99,7 +133,7 @@ namespace BusinessMonitor.MailTools.Util
                 host = host.Substring(0, host.Length - 1);
             }
 
-            return IsValidName(host);
+            return IsValidHostName(host);
         }
 
         /// <summary>

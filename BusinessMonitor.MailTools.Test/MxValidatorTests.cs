@@ -318,6 +318,13 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("-mail.example.com")]
         [TestCase("mail.example.com..")]
         [TestCase("mail\u0000.example.com")]
+        // An MX exchange must be a host name (RFC 1123 section 2.1), not any DNS name
+        [TestCase("_mx.hostile.nl")]
+        [TestCase("mail._tcp.hostile.nl")]
+        [TestCase("192.0.2.1")]          // IP address literal
+        [TestCase("10.0.0.1")]
+        [TestCase("2001:db8::1")]
+        [TestCase("mail.hostile.123")]   // Numeric top-level domain
         public void ValidateMxRecords_WithInvalidMxHost_MarksRecordInvalidWithoutResolving(string mxHost)
         {
             // Arrange
@@ -332,6 +339,7 @@ namespace BusinessMonitor.MailTools.Test
             // Assert
             Assert.That(result.HasMxRecords, Is.True);
             Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { mxHost }));
+            Assert.That(result.CanReceiveMail, Is.False);
             Assert.That(resolver.AddressLookups, Is.Empty);
         }
 

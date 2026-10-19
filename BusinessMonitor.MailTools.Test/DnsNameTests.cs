@@ -167,11 +167,23 @@ namespace BusinessMonitor.MailTools.Test
 
         [TestCase("mail.example.com", "mail.example.com")]
         [TestCase("mail.example.com.", "mail.example.com")]   // Single trailing dot is removed
-        [TestCase("_spf.example.com", "_spf.example.com")]
+        [TestCase("MAIL.Example.COM", "MAIL.Example.COM")]    // Case is preserved
+        [TestCase("3com.com", "3com.com")]                    // A label may start with a digit (RFC 1123)
+        [TestCase("mail-1.example.com", "mail-1.example.com")]
+        [TestCase("a.b.c.d.example.com", "a.b.c.d.example.com")]
+        [TestCase("mail", "mail")]                            // A single label is a valid host name
+        [TestCase("mail.example.c0m", "mail.example.c0m")]    // A TLD with a digit is not all digits
         public void TestTryNormalizeHostValid(string value, string expected)
         {
             Assert.That(DnsName.TryNormalizeHost(value, out var host), Is.True);
             Assert.That(host, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void TestTryNormalizeHostMaxLabelLength()
+        {
+            Assert.That(DnsName.TryNormalizeHost(new string('a', 63) + ".example.com", out _), Is.True);
+            Assert.That(DnsName.TryNormalizeHost(new string('a', 64) + ".example.com", out _), Is.False);
         }
 
         [TestCase(null)]
@@ -181,11 +193,51 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("mail example.com")]
         [TestCase("mail.example.com&type=TXT")]
         [TestCase("-mail.example.com")]
+        [TestCase("mail.example.com-")]
+        [TestCase("mail.-example.com")]
         [TestCase("mail\u0000.example.com")]
         [TestCase("mail.example.com/x")]
+        // An MX exchange is a host name (RFC 1123 section 2.1), underscores are not allowed
+        [TestCase("_spf.example.com")]
+        [TestCase("_mx.example.com")]
+        [TestCase("mail._tcp.example.com")]
+        [TestCase("mail_1.example.com")]
+        // IP address literals and numeric top-level domains are not host names
+        [TestCase("192.0.2.1")]
+        [TestCase("192.0.2.1.")]
+        [TestCase("10.0.0.1")]
+        [TestCase("2001:db8::1")]
+        [TestCase("[2001:db8::1]")]
+        [TestCase("::1")]
+        [TestCase("mail.example.123")]
+        [TestCase("1")]
         public void TestTryNormalizeHostInvalid(string value)
         {
             Assert.That(DnsName.TryNormalizeHost(value, out _), Is.False);
+        }
+
+        [TestCase("mail.example.com", true)]
+        [TestCase("3com.com", true)]
+        [TestCase("mail", true)]
+        [TestCase("_spf.example.com", false)]  // Valid DNS name, not a host name
+        [TestCase("192.0.2.1", false)]
+        [TestCase("mail.example.123", false)]
+        [TestCase("mail.example.com.", false)] // The trailing dot is not removed here
+        [TestCase("", false)]
+        [TestCase(null, false)]
+        public void TestIsValidHostName(string value, bool expected)
+        {
+            Assert.That(DnsName.IsValidHostName(value), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void TestIsValidHostNameMaxLength()
+        {
+            var name = new string('a', 63) + "." + new string('b', 63) + "." + new string('c', 63) + "." + new string('d', 61);
+
+            Assert.That(name.Length, Is.EqualTo(253));
+            Assert.That(DnsName.IsValidHostName(name), Is.True);
+            Assert.That(DnsName.IsValidHostName(name + "e"), Is.False);
         }
 
         [TestCase(".", true)]

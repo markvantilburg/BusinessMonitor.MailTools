@@ -936,12 +936,15 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(record.Directives, Has.Count.EqualTo(2));
         }
 
-        [Test]
-        public void TestMxHostFromDnsIsValidatedBeforeResolving()
+        [TestCase("mail.businessmonitor.nl&type=TXT")]
+        [TestCase("_mx.businessmonitor.nl")]   // An MX exchange is a host name, no underscores (RFC 1123 section 2.1)
+        [TestCase("192.0.2.1")]                // IP address literal
+        [TestCase("mail.businessmonitor.123")] // Numeric top-level domain
+        public void TestMxHostFromDnsIsValidatedBeforeResolving(string mxHost)
         {
             var resolver = new DummyResolver();
             resolver.AddText("businessmonitor.nl", "v=spf1 mx -all");
-            resolver.AddMail("businessmonitor.nl", "mail.businessmonitor.nl&type=TXT");
+            resolver.AddMail("businessmonitor.nl", mxHost);
 
             var check = new SpfCheck(resolver);
 
