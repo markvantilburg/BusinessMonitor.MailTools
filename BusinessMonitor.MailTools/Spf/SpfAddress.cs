@@ -47,12 +47,7 @@ namespace BusinessMonitor.MailTools.Spf
                 throw new SpfInvalidException($"Invalid IP address '{ip.Sanitize()}' in '{value.Sanitize()}'");
             }
 
-            IPAddress address;
-            try
-            {
-                address = IPAddress.Parse(ip);
-            }
-            catch (FormatException)
+            if (!IPAddress.TryParse(ip, out var address))
             {
                 throw new SpfInvalidException($"Invalid IP address '{ip.Sanitize()}' in '{value.Sanitize()}'");
             }
