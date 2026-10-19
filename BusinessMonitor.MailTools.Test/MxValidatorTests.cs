@@ -327,6 +327,15 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("10.0.0.1")]
         [TestCase("2001:db8::1")]
         [TestCase("mail.hostile.123")]   // Numeric top-level domain
+        // Special-use names (RFC 6761 and others) never receive internet mail
+        [TestCase("localhost")]
+        [TestCase("mail.localhost")]
+        [TestCase("mail.local")]
+        [TestCase("mail.internal")]
+        [TestCase("mail.home.arpa")]
+        [TestCase("mail.onion")]
+        [TestCase("mail.test")]
+        [TestCase("mail.invalid")]
         public void ValidateMxRecords_WithInvalidMxHost_MarksRecordInvalidWithoutResolving(string mxHost)
         {
             // Arrange

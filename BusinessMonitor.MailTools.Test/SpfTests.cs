@@ -940,6 +940,8 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("_mx.businessmonitor.nl")]   // An MX exchange is a host name, no underscores (RFC 1123 section 2.1)
         [TestCase("192.0.2.1")]                // IP address literal
         [TestCase("mail.businessmonitor.123")] // Numeric top-level domain
+        [TestCase("localhost")]                // Special-use name
+        [TestCase("mail.internal")]
         public void TestMxHostFromDnsIsValidatedBeforeResolving(string mxHost)
         {
             var resolver = new DummyResolver();

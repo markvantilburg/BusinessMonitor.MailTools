@@ -211,9 +211,57 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("::1")]
         [TestCase("mail.example.123")]
         [TestCase("1")]
+        // Special-use names never receive internet mail
+        [TestCase("localhost")]
+        [TestCase("LOCALHOST.")]
+        [TestCase("mail.localhost")]
+        [TestCase("mail.local")]
+        [TestCase("mail.internal")]
+        [TestCase("mail.home.arpa")]
+        [TestCase("mail.onion")]
+        [TestCase("mail.test")]
+        [TestCase("mail.example")]
+        [TestCase("mail.invalid")]
         public void TestTryNormalizeHostInvalid(string value)
         {
             Assert.That(DnsName.TryNormalizeHost(value, out _), Is.False);
+        }
+
+        [TestCase("localhost", true)]
+        [TestCase("LocalHost", true)]
+        [TestCase("mail.localhost", true)]
+        [TestCase("a.b.localhost", true)]
+        [TestCase("test", true)]
+        [TestCase("mail.test", true)]
+        [TestCase("example", true)]
+        [TestCase("mail.example", true)]
+        [TestCase("invalid", true)]
+        [TestCase("mail.invalid", true)]
+        [TestCase("local", true)]
+        [TestCase("printer.local", true)]
+        [TestCase("onion", true)]
+        [TestCase("abc.onion", true)]
+        [TestCase("home.arpa", true)]
+        [TestCase("router.home.arpa", true)]
+        [TestCase("internal", true)]
+        [TestCase("mail.corp.internal", true)]
+        // Similar but delegated names
+        [TestCase("notlocalhost", false)]
+        [TestCase("localhost.example.com", false)]
+        [TestCase("example.com", false)]
+        [TestCase("mail.example.com", false)]
+        [TestCase("internal.example.com", false)]
+        [TestCase("mylocal.com", false)]
+        [TestCase("local.example.com", false)]
+        [TestCase("arpa", false)]
+        [TestCase("mail.in-addr.arpa", false)]
+        [TestCase("test.com", false)]
+        [TestCase("onion.example.com", false)]
+        [TestCase("", false)]
+        [TestCase(null, false)]
+        public void TestIsSpecialUseName(string value, bool expected)
+        {
+            Assert.That(DnsName.IsSpecialUseName(value), Is.EqualTo(expected));
         }
 
         [TestCase("mail.example.com", true)]

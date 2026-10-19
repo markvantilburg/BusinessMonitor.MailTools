@@ -23,6 +23,20 @@ namespace BusinessMonitor.MailTools.Util
 
         private static readonly Regex DigitsRegex = new(@"^[0-9]+\z", RegexOptions.None, RegexTimeout);
 
+        // Special-use domain names that are never delegated on the public internet, a host under one of
+        // these can never receive internet mail
+        private static readonly string[] SpecialUseNames =
+        {
+            "localhost",  // RFC 6761 section 6.3
+            "test",       // RFC 6761 section 6.2
+            "example",    // RFC 6761 section 6.5
+            "invalid",    // RFC 6761 section 6.4
+            "local",      // RFC 6762 (multicast DNS)
+            "onion",      // RFC 7686
+            "home.arpa",  // RFC 8375
+            "internal",   // ICANN reserved private-use TLD (2024)
+        };
+
         /// <summary>
         /// Checks whether a value is a valid DNS label
         /// ASCII letters, digits, underscores or hyphens only, must not start or end with a hyphen, at most 63 characters
@@ -81,6 +95,37 @@ namespace BusinessMonitor.MailTools.Util
         }
 
         /// <summary>
+        /// Checks whether a host name is, or is under, a special-use domain name (RFC 6761 and others) that
+        /// is never delegated on the public internet, such as localhost, .local, .test or .internal
+        /// </summary>
+        internal static bool IsSpecialUseName(string host)
+        {
+            if (string.IsNullOrEmpty(host))
+            {
+                return false;
+            }
+
+            foreach (var name in SpecialUseNames)
+            {
+                if (host.Length == name.Length)
+                {
+                    if (host.Equals(name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+                else if (host.Length > name.Length
+                    && host[host.Length - name.Length - 1] == '.'
+                    && host.EndsWith(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Validates a caller-provided domain name, throws when it is not a valid DNS name.
         /// A single trailing dot, the absolute (FQDN) form, is accepted and removed
         /// </summary>
@@ -121,8 +166,9 @@ namespace BusinessMonitor.MailTools.Util
         /// <summary>
         /// Normalizes a host name returned by DNS, such as an MX exchange, before it is resolved again.
         /// A single trailing dot is removed. Returns false when the value is not a valid host name
-        /// (RFC 1123 section 2.1, see <see cref="IsValidHostName"/>), such a name must not be passed
-        /// back to the resolver.
+        /// (RFC 1123 section 2.1, see <see cref="IsValidHostName"/>) or is a special-use name that can
+        /// never receive internet mail (see <see cref="IsSpecialUseName"/>), such a name must not be
+        /// passed back to the resolver.
         /// </summary>
         internal static bool TryNormalizeHost(string value, out string host)
         {
@@ -133,7 +179,7 @@ namespace BusinessMonitor.MailTools.Util
                 host = host.Substring(0, host.Length - 1);
             }
 
-            return IsValidHostName(host);
+            return IsValidHostName(host) && !IsSpecialUseName(host);
         }
 
         /// <summary>
