@@ -49,15 +49,16 @@ namespace BusinessMonitor.MailTools.Mx
             /// <summary>
             /// Whether, as far as DNS is concerned, the domain can receive mail: at least one MX host or
             /// the implicit MX host is a valid name that resolves to address records of which none is
-            /// non-routable. False when there are no MX and no address records, for a null MX (RFC 7505),
-            /// or when every mail host is invalid, non-routable or has no address records. No SMTP
-            /// connection is made, a server that exists may still refuse mail.
+            /// non-routable, in other words at least one MX host is not in <see cref="InvalidMxRecords"/>.
+            /// False when there are no MX and no address records, for a null MX (RFC 7505), or when every
+            /// mail host is invalid. No SMTP connection is made, a server that exists may still refuse mail.
             /// </summary>
             public bool CanReceiveMail { get; set; }
 
             /// <summary>
-            /// The MX hosts that are not valid or resolve to a non-routable address, for an implicit MX
-            /// this is the domain itself, a null MX next to other MX records is reported once
+            /// The MX hosts that are not a valid host name, have no address records or resolve to a
+            /// non-routable address, for an implicit MX this is the domain itself, a null MX next to other
+            /// MX records is reported once
             /// </summary>
             public List<string> InvalidMxRecords { get; set; }
 
@@ -142,15 +143,14 @@ namespace BusinessMonitor.MailTools.Mx
                     continue;
                 }
 
+                // A host without address records cannot receive mail (RFC 5321 section 5.1)
                 IPAddress[] ipAddresses = _resolver.GetAddressRecords(host).WithoutNulls();
-                if (ipAddresses.Any(IPAddressHelper.IsNonRoutable))
+                if (ipAddresses.Length == 0 || ipAddresses.Any(IPAddressHelper.IsNonRoutable))
                 {
                     result.InvalidMxRecords.Add(mxRecord);
                 }
-                else if (ipAddresses.Length > 0)
+                else
                 {
-                    // A host without address records is not reported as invalid, the name may
-                    // exist but mail cannot be delivered to it
                     result.CanReceiveMail = true;
                 }
             }

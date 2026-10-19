@@ -135,6 +135,8 @@ if (result.InvalidMxRecords.Count > 0)
 
 `HasNullMx` is set when the domain publishes a null MX (RFC 7505, `0 .`), the domain then states it accepts no mail. A null MX must be the only MX record, when other MX records are present it is reported in `InvalidMxRecords`.
 
-`CanReceiveMail` is the DNS-level conclusion: at least one MX host, or the implicit MX host, is a valid name that resolves to address records none of which is non-routable. It is `false` for a domain without MX and address records, for a null MX (RFC 7505, `0 .`), and when every mail host is invalid, non-routable or has no address records. No SMTP connection is made, a server that exists may still refuse mail.
+`InvalidMxRecords` lists the MX hosts that are not a valid host name, have no address records or resolve to a non-routable address.
+
+`CanReceiveMail` is the DNS-level conclusion: at least one MX host, or the implicit MX host, is a valid name that resolves to address records none of which is non-routable, in other words at least one MX host is not in `InvalidMxRecords`. It is `false` for a domain without MX and address records, for a null MX (RFC 7505, `0 .`), and when every mail host is invalid. No SMTP connection is made, a server that exists may still refuse mail.
 
 A domain without MX records is not without mail, RFC 5321 section 5.1 treats it as having an implicit MX record with preference 0 pointing to the domain itself. `ValidateMxRecords` then validates the address records of the domain and sets `HasImplicitMx`, a non-routable address is reported in `InvalidMxRecords` as the domain name. A null MX is an MX record and does not fall back to the implicit MX.

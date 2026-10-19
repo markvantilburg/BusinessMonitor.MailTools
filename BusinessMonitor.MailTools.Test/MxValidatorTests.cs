@@ -458,9 +458,9 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        public void ValidateMxRecords_WithNullAddressRecords_TreatsRecordAsValid()
+        public void ValidateMxRecords_WithNullAddressRecords_MarksRecordInvalid()
         {
-            // Arrange
+            // Arrange, a null result is an empty result, the host has no address records
             var resolver = new DummyResolver { ReturnNullWhenEmpty = true };
             resolver.AddMail("nulladdress.nl", "mail.nulladdress.nl");
 
@@ -469,9 +469,9 @@ namespace BusinessMonitor.MailTools.Test
             // Act
             var result = validator.ValidateMxRecords("nulladdress.nl");
 
-            // Assert, the host is not reported as invalid but mail cannot be delivered to it
+            // Assert
             Assert.That(result.HasMxRecords, Is.True);
-            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mail.nulladdress.nl" }));
             Assert.That(result.CanReceiveMail, Is.False);
         }
 
@@ -557,9 +557,9 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        public void ValidateMxRecords_WithMxHostWithoutAddressRecords_CannotReceiveMail()
+        public void ValidateMxRecords_WithMxHostWithoutAddressRecords_MarksRecordInvalid()
         {
-            // Arrange
+            // Arrange, a dangling MX, the host has no address records so mail cannot be delivered to it
             var resolver = new DummyResolver();
             resolver.AddMail("noaddress.nl", "mail.noaddress.nl");
 
@@ -570,8 +570,9 @@ namespace BusinessMonitor.MailTools.Test
 
             // Assert
             Assert.That(result.HasMxRecords, Is.True);
-            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mail.noaddress.nl" }));
             Assert.That(result.CanReceiveMail, Is.False);
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "mail.noaddress.nl" }));
         }
 
         [Test]
@@ -594,7 +595,7 @@ namespace BusinessMonitor.MailTools.Test
 
             // Assert
             Assert.That(result.HasMxRecords, Is.True);
-            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mx1.partial.nl", "bad host" }));
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mx1.partial.nl", "mx3.partial.nl", "bad host" }));
             Assert.That(result.CanReceiveMail, Is.True);
         }
 
@@ -618,7 +619,7 @@ namespace BusinessMonitor.MailTools.Test
 
             // Assert
             Assert.That(result.HasMxRecords, Is.True);
-            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mx1.allbad.nl", "mx2.allbad.nl", "bad host" }));
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "mx1.allbad.nl", "mx2.allbad.nl", "mx3.allbad.nl", "bad host" }));
             Assert.That(result.CanReceiveMail, Is.False);
         }
 
