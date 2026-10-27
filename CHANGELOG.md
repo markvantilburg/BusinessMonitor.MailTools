@@ -3,6 +3,7 @@
 ## v1.2.1
 - [SPF] `ip4`/`ip6` addresses must consist of hex digits, dots and colons only, bracketed IPv6 addresses (`ip6:[2001:db8::1]`, with or without a port) that the .NET parser accepts are now rejected as invalid, in line with the zone identifier check.
 - [DKIM] Unrecognized hash algorithms in the `h=` tag are ignored as RFC 6376 section 3.6.1 requires instead of making the record invalid, `h=sha256:sha512` is now valid and `Algorithms` lists the tag as published. Every entry must still be a hyphenated word and the record must still allow `sha256`.
+- [SPF] A macro letter must be an ASCII letter, a non-ASCII letter that lower cases to an ASCII macro letter on some runtimes (such as `%{İ}`) is no longer accepted.
 
 ## v1.2.0
 - [MX] A domain without MX records now falls back to the implicit MX (RFC 5321 section 5.1): the address records of the domain itself are resolved and validated, `MxValidationResult.HasImplicitMx` is set when they exist and a non-routable address is reported in `InvalidMxRecords` as the domain name. `HasMxRecords` keeps reporting whether MX records exist. A null MX (RFC 7505) does not fall back.

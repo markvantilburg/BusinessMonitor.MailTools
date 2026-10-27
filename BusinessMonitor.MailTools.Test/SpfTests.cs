@@ -195,6 +195,8 @@ namespace BusinessMonitor.MailTools.Test
         [Test]
         [TestCase("v=spf1 exists -all")]                           // The exists mechanism requires a domain
         [TestCase("v=spf1 exists:%{x}.example.com -all")]          // Not a valid macro letter
+        [TestCase("v=spf1 exists:%{\u0130}.example.com -all")]     // Non-ASCII letter that lower cases to i on some runtimes
+        [TestCase("v=spf1 exists:%{\u00EF}.example.com -all")]     // Non-ASCII letter
         [TestCase("v=spf1 exists:%{c}.example.com -all")]          // Only valid in an exp text
         [TestCase("v=spf1 exists:%d.example.com -all")]            // Percent must start a macro
         [TestCase("v=spf1 exists:%{d.example.com -all")]           // Unterminated macro

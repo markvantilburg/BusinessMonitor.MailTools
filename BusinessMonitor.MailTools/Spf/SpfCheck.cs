@@ -427,8 +427,11 @@ namespace BusinessMonitor.MailTools.Spf
                     var inner = value.Substring(i + 1, end - i - 1);
                     if (inner.Length == 0) return false;
 
-                    // The c, r and t letters are only valid in an exp text
-                    if ("slodiphv".IndexOf(char.ToLowerInvariant(inner[0])) == -1) return false;
+                    // The c, r and t letters are only valid in an exp text, the letter must be ASCII,
+                    // ToLowerInvariant alone would let a non-ASCII letter that lower cases to ASCII through
+                    var letter = inner[0];
+                    if (letter > 0x7E) return false;
+                    if ("slodiphv".IndexOf(char.ToLowerInvariant(letter)) == -1) return false;
 
                     var j = 1;
 
