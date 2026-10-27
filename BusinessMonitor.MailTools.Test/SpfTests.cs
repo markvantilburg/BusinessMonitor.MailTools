@@ -311,6 +311,8 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=spf1 ip4:015.1.1.1 -all")]
         [TestCase("v=spf1 ip6:fe80::1%eth0 -all")]          // Zone identifiers are not part of the grammar
         [TestCase("v=spf1 ip6:fe80::1%251 -all")]
+        [TestCase("v=spf1 ip6:[2001:db8::1] -all")]         // Bracketed addresses are not part of the grammar
+        [TestCase("v=spf1 ip6:[2001:db8::1]:25 -all")]
         public void TestInvalidAddressSyntax(string value)
         {
             Assert.Throws<SpfInvalidException>(() =>

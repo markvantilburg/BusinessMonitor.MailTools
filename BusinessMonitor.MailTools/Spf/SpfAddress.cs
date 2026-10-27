@@ -40,9 +40,10 @@ namespace BusinessMonitor.MailTools.Spf
                 length = parsedLength;
             }
 
-            // Reject IPv6 zone identifiers such as fe80::1%eth0 which .NET accepts
-            // but are not part of the SPF grammar (RFC 7208 section 12)
-            if (ip.IndexOf('%') != -1)
+            // An address consists of hex digits, dots and colons only (RFC 7208 section 12), this rejects
+            // the forms .NET accepts but the SPF grammar does not, such as a zone identifier fe80::1%eth0,
+            // a bracketed address [2001:db8::1] or a bracketed address with a port [2001:db8::1]:25
+            if (ip.Length == 0 || !ip.All(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || c == '.' || c == ':'))
             {
                 throw new SpfInvalidException($"Invalid IP address '{ip.Sanitize()}' in '{value.Sanitize()}'");
             }

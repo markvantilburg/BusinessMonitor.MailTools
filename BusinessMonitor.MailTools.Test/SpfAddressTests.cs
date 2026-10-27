@@ -109,6 +109,9 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("fe80::1%eth0")]            // Zone identifier (RFC 7208 section 12)
         [TestCase("fe80::1%25")]
         [TestCase("fe80::1%")]
+        [TestCase("[2001:db8::1]")]           // Bracketed address, accepted by .NET but not by the grammar
+        [TestCase("[2001:db8::1]:25")]        // Bracketed address with a port
+        [TestCase("[2001:db8::1]/64")]
         public void TestParseInvalidIPv6(string value)
         {
             Assert.Throws<SpfInvalidException>(() => SpfAddress.Parse(value, AddressFamily.InterNetworkV6));
