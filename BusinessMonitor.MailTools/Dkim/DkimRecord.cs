@@ -16,7 +16,9 @@
         }
 
         /// <summary>
-        /// Gets a list of acceptable hash algorithms
+        /// Gets the acceptable hash algorithms (h), as listed in the record, empty when absent which allows
+        /// all algorithms. Unrecognized algorithms are kept so a record can be reported as it is published,
+        /// verifiers ignore them (RFC 6376 section 3.6.1), a record always allows sha256
         /// </summary>
         public string[] Algorithms { get; internal set; }
 

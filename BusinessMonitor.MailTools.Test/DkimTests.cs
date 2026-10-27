@@ -461,6 +461,8 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha256", new[] { "sha256" })]
         [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1:sha256", new[] { "sha1", "sha256" })]
         [TestCase("v=DKIM1; p=" + RsaKey, new string[0])] // Absent, all algorithms allowed
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha256:sha512", new[] { "sha256", "sha512" })] // Unrecognized algorithms are ignored (RFC 6376 section 3.6.1)
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=x-future-1:sha256", new[] { "x-future-1", "sha256" })]
         public void TestHashAlgorithms(string value, string[] expected)
         {
             var record = DkimCheck.ParseDkimRecord(value);
@@ -507,6 +509,9 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1:")]         // Empty list entry
         [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha1::sha256")]
         [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha 256")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha256:sha-")]   // Not a hyphenated word (RFC 6376 section 3.6.1)
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha256:1sha")]
+        [TestCase("v=DKIM1; p=" + RsaKey + "; h=sha256:sha_1")]
         public void TestInvalidHashAlgorithm(string value)
         {
             Assert.Throws<DkimInvalidException>(() =>

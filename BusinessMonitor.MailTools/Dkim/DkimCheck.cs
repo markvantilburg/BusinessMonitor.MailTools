@@ -129,9 +129,9 @@ namespace BusinessMonitor.MailTools.Dkim
 
                         break;
 
-                    // Acceptable hash algorithms, sha1 is still parsed so a legacy record
-                    // is reported as obsolete rather than malformed, it must be accompanied
-                    // by sha256 (checked after all tags are parsed)
+                    // Acceptable hash algorithms, unrecognized algorithms must be ignored (RFC 6376
+                    // section 3.6.1) so they are kept in the list but not validated, the record must
+                    // still allow sha256 (checked after all tags are parsed)
                     case "h":
                         // Whitespace around the colons is allowed, empty entries are
                         // kept so they fail the validation below
@@ -139,9 +139,11 @@ namespace BusinessMonitor.MailTools.Dkim
 
                         foreach (var algorithm in algorithms)
                         {
-                            if (algorithm != "sha1" && algorithm != "sha256")
+                            // Every entry must be a hyphenated word, a letter followed by letters,
+                            // digits or hyphens not ending in a hyphen (RFC 6376 section 3.6.1)
+                            if (!IsHyphenatedWord(algorithm))
                             {
-                                throw new DkimInvalidException("DKIM record invalid hash algorithm only sha1 or sha256 supported");
+                                throw new DkimInvalidException($"DKIM record contains an invalid hash algorithm name '{algorithm.Sanitize()}'");
                             }
                         }
 
@@ -215,7 +217,8 @@ namespace BusinessMonitor.MailTools.Dkim
             }
 
             // A record that does not allow sha256 can never verify a signature, verifiers must
-            // not accept rsa-sha1 (RFC 8301) and ed25519 is only defined with sha256 (RFC 8463)
+            // not accept rsa-sha1 (RFC 8301) and ed25519 is only defined with sha256 (RFC 8463),
+            // an unrecognized algorithm is ignored by verifiers so it does not count as allowing one
             if (record.Algorithms.Length > 0 && !record.Algorithms.Contains("sha256"))
             {
                 throw new DkimInvalidException("DKIM record must allow the sha256 hash algorithm, sha1 is obsolete (RFC 8301)");
@@ -229,6 +232,35 @@ namespace BusinessMonitor.MailTools.Dkim
 
             // Return the record
             return record;
+        }
+
+        /// <summary>
+        /// Checks whether a value is a hyphenated word, a letter followed by letters, digits or
+        /// hyphens and not ending in a hyphen (RFC 6376 section 3.6.1)
+        /// </summary>
+        private static bool IsHyphenatedWord(string value)
+        {
+            if (value.Length == 0 || !IsAsciiLetter(value[0]) || value[value.Length - 1] == '-')
+            {
+                return false;
+            }
+
+            for (var i = 1; i < value.Length; i++)
+            {
+                var c = value[i];
+
+                if (!IsAsciiLetter(c) && (c < '0' || c > '9') && c != '-')
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsAsciiLetter(char c)
+        {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
         }
 
         /// <summary>
