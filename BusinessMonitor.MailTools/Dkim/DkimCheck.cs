@@ -102,7 +102,7 @@ namespace BusinessMonitor.MailTools.Dkim
                 var tag = t.Substring(0, i).Trim();
                 var val = t.Substring(i + 1).Trim();
 
-                if (!IsValidTagName(tag))
+                if (!TagValue.IsValidTagName(tag))
                 {
                     throw new DkimInvalidException($"DKIM record contains an invalid tag name '{tag.Sanitize()}'");
                 }
@@ -240,7 +240,7 @@ namespace BusinessMonitor.MailTools.Dkim
         /// </summary>
         private static bool IsHyphenatedWord(string value)
         {
-            if (value.Length == 0 || !IsAsciiLetter(value[0]) || value[value.Length - 1] == '-')
+            if (value.Length == 0 || !TagValue.IsAsciiLetter(value[0]) || value[value.Length - 1] == '-')
             {
                 return false;
             }
@@ -249,43 +249,7 @@ namespace BusinessMonitor.MailTools.Dkim
             {
                 var c = value[i];
 
-                if (!IsAsciiLetter(c) && (c < '0' || c > '9') && c != '-')
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        private static bool IsAsciiLetter(char c)
-        {
-            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-        }
-
-        /// <summary>
-        /// Checks whether a value is a valid tag name, a letter followed by
-        /// letters, digits or underscores (RFC 6376 section 3.2)
-        /// </summary>
-        private static bool IsValidTagName(string value)
-        {
-            if (value.Length == 0)
-            {
-                return false;
-            }
-
-            var first = value[0];
-
-            if ((first < 'a' || first > 'z') && (first < 'A' || first > 'Z'))
-            {
-                return false;
-            }
-
-            for (var i = 1; i < value.Length; i++)
-            {
-                var c = value[i];
-
-                if ((c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '_')
+                if (!TagValue.IsAsciiLetter(c) && (c < '0' || c > '9') && c != '-')
                 {
                     return false;
                 }
@@ -344,24 +308,14 @@ namespace BusinessMonitor.MailTools.Dkim
         /// </summary>
         private static bool LooksLikeDkimRecord(string value)
         {
-            var tags = value.Split(';');
-
             // A record starting with a v tag is a DKIM record only when the version is DKIM1
-            var first = tags[0];
-            var index = first.IndexOf('=');
-
-            if (index != -1 && first.Substring(0, index).Trim() == "v")
+            if (TagValue.TryGetFirstTag(value, out var name, out var version) && name == "v")
             {
-                return first.Substring(index + 1).Trim() == "DKIM1";
+                return version == "DKIM1";
             }
 
             // No version tag, look for a public key tag
-            return tags.Any(t =>
-            {
-                var i = t.IndexOf('=');
-
-                return i != -1 && t.Substring(0, i).Trim() == "p";
-            });
+            return value.Split(';').Any(t => TagValue.TryGetTag(t, out var n, out _) && n == "p");
         }
 
     }

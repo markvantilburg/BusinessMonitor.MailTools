@@ -128,7 +128,7 @@ namespace BusinessMonitor.MailTools.Dmarc
                 var val = t.Substring(i + 1).Trim();
 
                 // A tag name is one or more letters (RFC 9989 section 4.8)
-                if (!IsValidTagName(tag))
+                if (!TagValue.IsValidAlphaTagName(tag))
                 {
                     throw new DmarcInvalidException($"DMARC record contains an invalid tag name '{tag.Sanitize()}'");
                 }
@@ -251,38 +251,7 @@ namespace BusinessMonitor.MailTools.Dmarc
         /// </summary>
         private static bool IsDmarcRecord(string value)
         {
-            var end = value.IndexOf(';');
-            var first = end == -1 ? value : value.Substring(0, end);
-            var index = first.IndexOf('=');
-
-            if (index == -1)
-            {
-                return false;
-            }
-
-            return first.Substring(0, index).Trim() == "v"
-                && string.Equals(first.Substring(index + 1).Trim(), "DMARC1", StringComparison.Ordinal);
-        }
-
-        /// <summary>
-        /// Checks whether a value is a valid tag name, one or more ASCII letters (RFC 9989 section 4.8)
-        /// </summary>
-        private static bool IsValidTagName(string value)
-        {
-            if (value.Length == 0)
-            {
-                return false;
-            }
-
-            foreach (var c in value)
-            {
-                if ((c < 'a' || c > 'z') && (c < 'A' || c > 'Z'))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return TagValue.HasVersion(value, "DMARC1");
         }
 
         private static AlignmentMode GetAlignmentMode(string value, string tag)

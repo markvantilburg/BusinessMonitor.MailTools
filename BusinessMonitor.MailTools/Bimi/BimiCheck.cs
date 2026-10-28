@@ -111,7 +111,7 @@ namespace BusinessMonitor.MailTools.Bimi
                 var tag = t.Substring(0, i).Trim();
                 var val = t.Substring(i + 1).Trim();
 
-                if (!IsValidTagName(tag))
+                if (!TagValue.IsValidTagName(tag))
                 {
                     throw new BimiInvalidException($"BIMI record contains an invalid tag name '{tag.Sanitize()}'");
                 }
@@ -171,48 +171,7 @@ namespace BusinessMonitor.MailTools.Bimi
         /// </summary>
         private static bool IsBimiRecord(string value)
         {
-            var end = value.IndexOf(';');
-            var first = end == -1 ? value : value.Substring(0, end);
-            var index = first.IndexOf('=');
-
-            if (index == -1)
-            {
-                return false;
-            }
-
-            return first.Substring(0, index).Trim() == "v"
-                && string.Equals(first.Substring(index + 1).Trim(), "BIMI1", StringComparison.Ordinal);
-        }
-
-        /// <summary>
-        /// Checks whether a value is a valid tag name, a letter followed by letters, digits or
-        /// underscores (RFC 6376 section 3.2)
-        /// </summary>
-        private static bool IsValidTagName(string value)
-        {
-            if (value.Length == 0)
-            {
-                return false;
-            }
-
-            var first = value[0];
-
-            if ((first < 'a' || first > 'z') && (first < 'A' || first > 'Z'))
-            {
-                return false;
-            }
-
-            for (var i = 1; i < value.Length; i++)
-            {
-                var c = value[i];
-
-                if ((c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '_')
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return TagValue.HasVersion(value, "BIMI1");
         }
 
         private static void ValidateUri(string value, string type)
