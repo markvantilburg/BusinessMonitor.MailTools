@@ -1,6 +1,5 @@
 using System.Net;
 using BusinessMonitor.MailTools.Dns;
-using BusinessMonitor.MailTools.Exceptions;
 using BusinessMonitor.MailTools.Util;
 
 namespace BusinessMonitor.MailTools.Mx
@@ -8,7 +7,10 @@ namespace BusinessMonitor.MailTools.Mx
     public class MxValidator
     {
         /// <summary>
-        /// The maximum number of MX records that will be resolved for a domain (normally maximum is 5)
+        /// The maximum number of MX hosts that are resolved for a domain, a domain normally has a handful,
+        /// the limit protects against a DNS server that answers with a flood of MX records, each of which
+        /// costs an address lookup. Hosts beyond the limit are reported in
+        /// <see cref="MxValidationResult.UnvalidatedMxRecords"/>
         /// </summary>
         private const int MaxMxRecords = 10;
 
@@ -62,9 +64,24 @@ namespace BusinessMonitor.MailTools.Mx
             /// </summary>
             public List<string> InvalidMxRecords { get; set; }
 
+            /// <summary>
+            /// The MX hosts that were not resolved because the domain has more than 10 distinct MX hosts,
+            /// in the order returned by DNS after the first 10. Their validity is unknown, they are neither
+            /// in <see cref="InvalidMxRecords"/> nor counted toward <see cref="CanReceiveMail"/>.
+            /// A null MX and a host that is not a valid name need no lookup and are still reported.
+            /// </summary>
+            public List<string> UnvalidatedMxRecords { get; set; }
+
+            /// <summary>
+            /// Whether the domain has more than 10 distinct MX hosts and <see cref="UnvalidatedMxRecords"/>
+            /// lists the hosts that were not resolved
+            /// </summary>
+            public bool MxRecordLimitExceeded { get; set; }
+
             public MxValidationResult()
             {
                 InvalidMxRecords = new List<string>();
+                UnvalidatedMxRecords = new List<string>();
             }
         }
 
@@ -72,9 +89,9 @@ namespace BusinessMonitor.MailTools.Mx
         /// Validates the MX records of a domain. A domain without MX records falls back to the implicit
         /// MX (RFC 5321 section 5.1), the address records of the domain itself are then validated and
         /// <see cref="MxValidationResult.HasImplicitMx"/> is set. A null MX (RFC 7505) is an MX record
-        /// and does not fall back.
+        /// and does not fall back. At most 10 distinct MX hosts are resolved, any further hosts are
+        /// reported in <see cref="MxValidationResult.UnvalidatedMxRecords"/>.
         /// </summary>
-        /// <exception cref="MxException">The domain has more than 10 MX records</exception>
         /// <exception cref="ArgumentException">The domain is not a valid DNS name</exception>
         public MxValidationResult ValidateMxRecords(string domain)
         {
@@ -106,11 +123,6 @@ namespace BusinessMonitor.MailTools.Mx
                 return result;
             }
 
-            if (mxRecords.Length > MaxMxRecords)
-            {
-                throw new MxException($"Domain exceeds max MX records of {MaxMxRecords}");
-            }
-
             result.HasMxRecords = true;
 
             // DNS names are case-insensitive, a host listed more than once is resolved and reported once
@@ -140,6 +152,14 @@ namespace BusinessMonitor.MailTools.Mx
 
                 if (!seenHosts.Add(host))
                 {
+                    continue;
+                }
+
+                // Only the first hosts are resolved, the rest are reported as not validated
+                if (seenHosts.Count > MaxMxRecords)
+                {
+                    result.MxRecordLimitExceeded = true;
+                    result.UnvalidatedMxRecords.Add(mxRecord);
                     continue;
                 }
 

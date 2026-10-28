@@ -230,9 +230,36 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        public void ValidateMxRecords_WithTooManyMxRecords_ThrowsMxException()
+        public void ValidateMxRecords_WithTooManyMxRecords_ValidatesFirstTenAndReportsRest()
         {
             // Arrange
+            var resolver = new DummyResolver();
+
+            for (var i = 1; i <= 12; i++)
+            {
+                resolver.AddMail("many.nl", $"mx{i}.many.nl");
+                resolver.AddAddress($"mx{i}.many.nl", IPAddress.Parse("222.222.1.1"));
+            }
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("many.nl");
+
+            // Assert, the first ten hosts are resolved, the rest are reported without a lookup
+            Assert.That(result.HasMxRecords, Is.True);
+            Assert.That(result.CanReceiveMail, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.Empty);
+            Assert.That(result.MxRecordLimitExceeded, Is.True);
+            Assert.That(result.UnvalidatedMxRecords, Is.EqualTo(new[] { "mx11.many.nl", "mx12.many.nl" }));
+            Assert.That(resolver.AddressLookups, Has.Count.EqualTo(10));
+            Assert.That(resolver.AddressLookups, Does.Not.Contain("mx11.many.nl"));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithTooManyMxRecords_AllFirstTenInvalid_CannotReceiveMail()
+        {
+            // Arrange, the hosts beyond the limit are of unknown validity and do not count toward CanReceiveMail
             var resolver = new DummyResolver();
 
             for (var i = 1; i <= 11; i++)
@@ -240,13 +267,45 @@ namespace BusinessMonitor.MailTools.Test
                 resolver.AddMail("many.nl", $"mx{i}.many.nl");
             }
 
+            resolver.AddAddress("mx11.many.nl", IPAddress.Parse("222.222.1.1"));
+
             var validator = new MxValidator(resolver);
 
-            // Act & Assert
-            Assert.Throws<MxException>(() => validator.ValidateMxRecords("many.nl"));
+            // Act
+            var result = validator.ValidateMxRecords("many.nl");
 
-            // No address lookups may be done when the limit is exceeded
-            Assert.That(resolver.AddressLookups, Is.Empty);
+            // Assert
+            Assert.That(result.CanReceiveMail, Is.False);
+            Assert.That(result.InvalidMxRecords, Has.Count.EqualTo(10));
+            Assert.That(result.UnvalidatedMxRecords, Is.EqualTo(new[] { "mx11.many.nl" }));
+        }
+
+        [Test]
+        public void ValidateMxRecords_WithTooManyMxRecords_NullMxAndInvalidNamesStillReported()
+        {
+            // Arrange, a null MX and an invalid host name need no lookup and are reported beyond the limit
+            var resolver = new DummyResolver();
+
+            for (var i = 1; i <= 10; i++)
+            {
+                resolver.AddMail("many.nl", $"mx{i}.many.nl");
+                resolver.AddAddress($"mx{i}.many.nl", IPAddress.Parse("222.222.1.1"));
+            }
+
+            resolver.AddMail("many.nl", "mx11.many.nl");
+            resolver.AddMail("many.nl", "bad_host.many.nl");
+            resolver.AddMail("many.nl", ".");
+
+            var validator = new MxValidator(resolver);
+
+            // Act
+            var result = validator.ValidateMxRecords("many.nl");
+
+            // Assert
+            Assert.That(result.HasNullMx, Is.True);
+            Assert.That(result.InvalidMxRecords, Is.EqualTo(new[] { "bad_host.many.nl", "." }));
+            Assert.That(result.UnvalidatedMxRecords, Is.EqualTo(new[] { "mx11.many.nl" }));
+            Assert.That(resolver.AddressLookups, Has.Count.EqualTo(10));
         }
 
         [Test]
@@ -570,9 +629,9 @@ namespace BusinessMonitor.MailTools.Test
         }
 
         [Test]
-        public void ValidateMxRecords_WithTooManyDuplicateMxRecords_ThrowsMxException()
+        public void ValidateMxRecords_WithManyDuplicateMxRecords_ResolvesOnceWithinLimit()
         {
-            // Arrange, the limit applies to the records as returned, before duplicates are removed
+            // Arrange, the limit applies to distinct hosts, duplicates are resolved once and do not count
             var resolver = new DummyResolver();
 
             for (var i = 1; i <= 11; i++)
@@ -580,11 +639,18 @@ namespace BusinessMonitor.MailTools.Test
                 resolver.AddMail("many.nl", "mail.many.nl");
             }
 
+            resolver.AddAddress("mail.many.nl", IPAddress.Parse("222.222.1.1"));
+
             var validator = new MxValidator(resolver);
 
-            // Act & Assert
-            Assert.Throws<MxException>(() => validator.ValidateMxRecords("many.nl"));
-            Assert.That(resolver.AddressLookups, Is.Empty);
+            // Act
+            var result = validator.ValidateMxRecords("many.nl");
+
+            // Assert
+            Assert.That(result.CanReceiveMail, Is.True);
+            Assert.That(result.MxRecordLimitExceeded, Is.False);
+            Assert.That(result.UnvalidatedMxRecords, Is.Empty);
+            Assert.That(resolver.AddressLookups, Is.EqualTo(new[] { "mail.many.nl" }));
         }
 
         [Test]
