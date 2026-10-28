@@ -85,17 +85,27 @@ namespace BusinessMonitor.MailTools.Spf
             var start = counter.Count;
             var records = _resolver.GetTextRecords(domain).WithoutNulls();
 
-            // Find the SPF record
-            var record = records.FirstOrDefault(IsSpfRecord);
+            // Find the SPF record, a domain must publish exactly one (RFC 7208 section 3.2 and 4.5)
+            string? record = null;
 
-            if (record == default)
+            foreach (var candidate in records)
             {
-                throw new SpfNotFoundException("No SPF record found on domain");
+                if (!IsSpfRecord(candidate))
+                {
+                    continue;
+                }
+
+                if (record != null)
+                {
+                    throw new SpfInvalidException("Too many SPF records found on domain");
+                }
+
+                record = candidate;
             }
 
-            if (records.Count(IsSpfRecord) > 1)
+            if (record == null)
             {
-                throw new SpfInvalidException("Too many SPF records found on domain");
+                throw new SpfNotFoundException("No SPF record found on domain");
             }
 
             // Parse and validate the record and return it
