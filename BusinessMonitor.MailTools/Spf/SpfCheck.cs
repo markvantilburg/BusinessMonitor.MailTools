@@ -545,28 +545,26 @@ namespace BusinessMonitor.MailTools.Spf
 
                 case SpfMechanism.IP4:
                     var address4 = SpfAddress.Parse(value, AddressFamily.InterNetwork);
+                    // Add the IP address to the list
                     // Check if the IP4 has already been seen
-                    if (seenIpAddresses.Contains(address4))
+                    if (!seenIpAddresses.Add(address4))
                     {
                         throw new SpfInvalidException($"Duplicate IP4 mechanism detected: {address4}");
                     }
 
-                    // Add the IP address to the list
-                    seenIpAddresses.Add(address4);
                     directive.IP4 = address4;
 
                     break;
 
                 case SpfMechanism.IP6:
                     var address6 = SpfAddress.Parse(value, AddressFamily.InterNetworkV6);
+                    // Add the IP address to the list
                     // Check if the IP6 has already been seen
-                    if (seenIpAddresses.Contains(address6))
+                    if (!seenIpAddresses.Add(address6))
                     {
                         throw new SpfInvalidException($"Duplicate IP6 mechanism detected: {address6}");
                     }
 
-                    // Add the IP address to the list
-                    seenIpAddresses.Add(address6);
                     directive.IP6 = address6;
 
                     break;
