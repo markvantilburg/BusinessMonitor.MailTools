@@ -5,6 +5,7 @@
 - [DKIM] Unrecognized hash algorithms in the `h=` tag are ignored as RFC 6376 section 3.6.1 requires instead of making the record invalid, `h=sha256:sha512` is now valid and `Algorithms` lists the tag as published. Every entry must still be a hyphenated word and the record must still allow `sha256`.
 - [SPF] A macro letter must be an ASCII letter, a non-ASCII letter that lower cases to an ASCII macro letter on some runtimes (such as `%{İ}`) is no longer accepted.
 - [DMARC] [DKIM] [BIMI] The tag name and version tag checks shared by the three tag-value record parsers now live in one internal `TagValue` helper, no behaviour change.
+- [SPF] Duplicate `ip4`/`ip6` mechanisms are now detected on the network they cover instead of on the literal address, `ip4:192.0.2.0/24` and `ip4:192.0.2.1/24` are the same mechanism as the host bits of a prefix are ignored (RFC 7208 section 5.6). `SpfAddress.Equals` follows the same rule and the new `SpfAddress.Network` exposes the address with the host bits cleared, `Address` is kept as written.
 
 ## v1.2.0
 - [MX] A domain without MX records now falls back to the implicit MX (RFC 5321 section 5.1): the address records of the domain itself are resolved and validated, `MxValidationResult.HasImplicitMx` is set when they exist and a non-routable address is reported in `InvalidMxRecords` as the domain name. `HasMxRecords` keeps reporting whether MX records exist. A null MX (RFC 7505) does not fall back.

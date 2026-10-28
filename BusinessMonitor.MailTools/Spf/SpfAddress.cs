@@ -112,17 +112,73 @@ namespace BusinessMonitor.MailTools.Spf
         private int EffectiveLength => Length ?? (Address.AddressFamily == AddressFamily.InterNetwork ? 32 : 128);
 
         /// <summary>
+        /// Gets the network address, the address with the host bits of the prefix cleared, ip4:192.0.2.1/24
+        /// covers the network 192.0.2.0 (RFC 7208 section 5.6)
+        /// </summary>
+        public IPAddress Network => new IPAddress(GetNetworkBytes());
+
+        /// <summary>
+        /// Gets the address bytes with the host bits cleared
+        /// </summary>
+        private byte[] GetNetworkBytes()
+        {
+            var bytes = Address.GetAddressBytes();
+            var length = EffectiveLength;
+
+            // Clear the partial byte, then every byte after it
+            var index = length / 8;
+            var bits = length % 8;
+
+            if (bits != 0 && index < bytes.Length)
+            {
+                bytes[index] &= (byte)(0xFF << (8 - bits));
+                index++;
+            }
+
+            for (; index < bytes.Length; index++)
+            {
+                bytes[index] = 0;
+            }
+
+            return bytes;
+        }
+
+        /// <summary>
         /// Two addresses are equal when they cover the same network, ip4:192.0.2.1 and ip4:192.0.2.1/32
-        /// are the same mechanism
+        /// are the same mechanism, as are ip4:192.0.2.0/24 and ip4:192.0.2.1/24 since the host bits of
+        /// the prefix are ignored (RFC 7208 section 5.6)
         /// </summary>
         public virtual bool Equals(SpfAddress? other)
         {
-            return other is not null && Address.Equals(other.Address) && EffectiveLength == other.EffectiveLength;
+            if (other is null || Address.AddressFamily != other.Address.AddressFamily || EffectiveLength != other.EffectiveLength)
+            {
+                return false;
+            }
+
+            var a = GetNetworkBytes();
+            var b = other.GetNetworkBytes();
+
+            for (var i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public override int GetHashCode()
         {
-            return Address.GetHashCode() * 397 ^ EffectiveLength;
+            var hash = EffectiveLength;
+
+            foreach (var b in GetNetworkBytes())
+            {
+                hash = hash * 31 + b;
+            }
+
+            return hash;
         }
 
         /// <summary>

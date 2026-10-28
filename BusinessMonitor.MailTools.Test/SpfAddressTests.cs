@@ -170,11 +170,46 @@ namespace BusinessMonitor.MailTools.Test
             Assert.That(a.GetHashCode(), Is.EqualTo(b.GetHashCode()));
         }
 
+        [TestCase("192.0.2.0/24", "192.0.2.1/24", AddressFamily.InterNetwork)]
+        [TestCase("192.0.2.1/24", "192.0.2.255/24", AddressFamily.InterNetwork)]
+        [TestCase("192.0.2.0/25", "192.0.2.127/25", AddressFamily.InterNetwork)]   // Partial byte prefix
+        [TestCase("10.1.2.3/8", "10.255.255.255/8", AddressFamily.InterNetwork)]
+        [TestCase("1.2.3.4/0", "5.6.7.8/0", AddressFamily.InterNetwork)]           // A zero prefix covers everything
+        [TestCase("2001:db8::/32", "2001:db8:ffff::1/32", AddressFamily.InterNetworkV6)]
+        [TestCase("2001:db8::/33", "2001:db8:7fff::1/33", AddressFamily.InterNetworkV6)]
+        public void TestEqualsSameNetworkDifferentBase(string first, string second, AddressFamily family)
+        {
+            // The host bits of the prefix are ignored (RFC 7208 section 5.6), both cover the same network
+            var a = SpfAddress.Parse(first, family);
+            var b = SpfAddress.Parse(second, family);
+
+            Assert.That(a.Equals(b), Is.True);
+            Assert.That(a == b, Is.True);
+            Assert.That(a.GetHashCode(), Is.EqualTo(b.GetHashCode()));
+            Assert.That(a.Network, Is.EqualTo(b.Network));
+        }
+
+        [TestCase("192.0.2.1/24", "192.0.2.0")]
+        [TestCase("192.0.2.129/25", "192.0.2.128")]
+        [TestCase("192.0.2.1", "192.0.2.1")]
+        [TestCase("1.2.3.4/0", "0.0.0.0")]
+        [TestCase("2001:db8:ffff::1/32", "2001:db8::")]
+        [TestCase("2001:db8::1", "2001:db8::1")]
+        public void TestNetwork(string value, string expected)
+        {
+            var family = value.IndexOf(':') != -1 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
+            var address = SpfAddress.Parse(value, family);
+
+            Assert.That(address.Network, Is.EqualTo(IPAddress.Parse(expected)));
+            Assert.That(address.ToString(), Is.EqualTo(value)); // The address is kept as written
+        }
+
         [TestCase("192.0.2.0/24", "192.0.2.0/25", AddressFamily.InterNetwork)]     // Different prefix
+        [TestCase("192.0.2.0/25", "192.0.2.128/25", AddressFamily.InterNetwork)]   // Differ in the partial byte
+        [TestCase("192.0.2.0/24", "192.0.3.0/24", AddressFamily.InterNetwork)]     // Different network
         [TestCase("192.0.2.0/24", "192.0.3.0/24", AddressFamily.InterNetwork)]     // Different network
         [TestCase("192.0.2.1", "192.0.2.2", AddressFamily.InterNetwork)]           // Different single address
         [TestCase("192.0.2.1", "192.0.2.1/31", AddressFamily.InterNetwork)]        // Single address is not a /31
-        [TestCase("192.0.2.0/24", "192.0.2.1/24", AddressFamily.InterNetwork)]     // Same network but different base address, compared literally
         [TestCase("2001:db8::/32", "2001:db8::/48", AddressFamily.InterNetworkV6)]
         [TestCase("2001:db8::1", "2001:db8::2", AddressFamily.InterNetworkV6)]
         public void TestNotEquals(string first, string second, AddressFamily family)

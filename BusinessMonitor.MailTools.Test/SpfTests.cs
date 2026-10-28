@@ -558,6 +558,8 @@ namespace BusinessMonitor.MailTools.Test
         [TestCase("v=spf1 ip4:192.168.1.1/32 ip4:192.168.1.1 ~all")]
         [TestCase("v=spf1 ip6:2001:db8::1 ip6:2001:db8::1/128 ~all")]
         [TestCase("v=spf1 ip4:192.168.1.0/24 ip4:192.168.1.0/24 ~all")]
+        [TestCase("v=spf1 ip4:192.168.1.0/24 ip4:192.168.1.1/24 ~all")]   // Same network, the host bits are ignored (RFC 7208 section 5.6)
+        [TestCase("v=spf1 ip6:2001:db8::/32 ip6:2001:db8:1::1/32 ~all")]
         public void TestInvalid(string value)
         {
             Assert.Throws<SpfInvalidException>(() =>
